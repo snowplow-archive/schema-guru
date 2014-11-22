@@ -20,9 +20,9 @@ object BuildSettings {
 
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
-    organization          :=  "com.snowplowanalytics.schemaguru",
+    organization          :=  "com.snowplowanalytics",
     version               :=  "0.1.0-M1",
-    description           :=  "Schema Guru",
+    description           :=  "For deriving JSON Schemas from collections of JSON instances",
     scalaVersion          :=  "2.10.1",
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
                                   "-unchecked", "-feature",
@@ -45,21 +45,19 @@ object BuildSettings {
     Seq(file)
   })
 
-  // For MaxMind support in the test suite
-  import Dependencies._
+  // sbt-assembly settings for building a fat jar
+  import sbtassembly.Plugin._
+  import AssemblyKeys._
+  lazy val sbtAssemblySettings = assemblySettings ++ Seq(
 
-  // Publish settings
-  // TODO: update with ivy credentials etc when we start using Nexus
-  lazy val publishSettings = Seq[Setting[_]](
-   
-    crossPaths := false,
-    publishTo <<= version { version =>
-      val basePath = "target/repo/%s".format {
-        if (version.trim.endsWith("SNAPSHOT")) "snapshots/" else "releases/"
-      }
-      Some(Resolver.file("Local Maven repository", file(basePath)) transactional())
-    }
+    // Simpler jar name
+    jarName in assembly := {
+      name.value + ".jar"
+    },
+
+    // Make this executable
+    mainClass in assembly := Some("com.snowplowanalytics.schemaguru.Main")
   )
 
-  lazy val buildSettings = basicSettings ++ scalifySettings ++ publishSettings
+  lazy val buildSettings = basicSettings ++ scalifySettings ++ sbtAssemblySettings
 }
