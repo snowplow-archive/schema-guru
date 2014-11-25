@@ -26,9 +26,6 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz._
-import org.json4s.{ Extraction, NoTypeHints }
-import org.json4s.JsonDSL.WithDouble._
-import org.json4s.jackson.Serialization
 
 /**
  * Takes a JSON and converts it into a JsonSchema.
@@ -43,12 +40,6 @@ object JsonSchemaGenerator {
 
   // The current directory which we are pulling resources from
   private val BaseSchemaFile = "//vagrant//schema-guru//src//main//resources//base-jsonschema.json"
-
-  // The pointer nested inside some JArrays
-  private val FakeKeyPointer = JString("type: name-value")
-
-  // Needed for re-encoding types
-  implicit val formats = Serialization.formats(NoTypeHints)
 
   /**
    * Will wrap JObjects and JArrays in JsonSchema
@@ -80,13 +71,14 @@ object JsonSchemaGenerator {
     jObjectList match {
       case x :: xs => {
         val jSchema: List[(String, JValue)] = x match {
-          case (k, JObject(v)) => List((k, encodeJson(jsonToSchema(JObject(v)))))
-          case (k, JArray(v))  => {
-            List((k, encodeJson(v match {
-              case list if list.contains(FakeKeyPointer) => JObject(List(("type", jArrayListToTypes(remove(FakeKeyPointer, list)))))
-              case list => JObject(List(("type", JString("array")), ("items", jArrayListProcessor(list))))
-            })))
-          }
+          case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
+          case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
+          case (k, JString(_))  => List((k, JObject(List(("type", JString("string"))))))
+          case (k, JInt(_))     => List((k, JObject(List(("type", JString("integer"))))))
+          case (k, JDecimal(_)) => List((k, JObject(List(("type", JString("number"))))))
+          case (k, JDouble(_))  => List((k, JObject(List(("type", JString("number"))))))
+          case (k, JBool(_))    => List((k, JObject(List(("type", JString("boolean"))))))
+          case (k, JNull)       => List((k, JObject(List(("type", JString("null"))))))
         }
         jObjectListProcessor(xs, (accum ++ jSchema))
       }
@@ -122,66 +114,11 @@ object JsonSchemaGenerator {
       case Nil => {
         accum match { 
           case list if list.size == 1 => list(0) 
-          case list if list.size > 1  => JArray(list) 
-        }
-      }
-    }
-
-  /**
-   * Takes a list of JValues which we know will only contain
-   * the types listed and converts it to a list of JValues
-   * which will describe all potential types for a key.
-   *
-   * @param jValueList the JValue list of entries which we
-   *        will need to convert.
-   * @param accum is the accumulated list of JValues we have
-   *        which will make this function tail recursive
-   * @return a JValue containing either a single entry or 
-   *         a JArray list of entries.
-   */
-  def jArrayListToTypes(jValueList: List[JValue], accum: List[JValue] = List()): JValue =
-    jValueList match {
-      case x :: xs => {
-        val jType = x match {
-          case JString(_)  => JString("string")
-          case JInt(_)     => JString("integer")
-          case JDecimal(_) => JString("number")
-          case JDouble(_)  => JString("number")
-          case JBool(_)    => JString("boolean")
-          case JNull       => JString("null")
-        }
-        jArrayListToTypes(xs, (accum ++ List(jType)))
-      }
-      case Nil => {
-        accum match { 
-          case list if list.size == 1 => list(0)
           case list if list.size > 1  => JArray(list)
+          case list                   => JArray(list)
         }
       }
     }
-
-  /**
-   * Used for changing JObject types to JValue
-   *
-   * @param src Is AnyRef currently but only being
-   *        used to re-encode JObjects
-   * @return the re-encoded JObject as a JValue
-   */
-  def encodeJson(src: AnyRef): JValue = 
-    Extraction.decompose(src)
-
-  /**
-   * Removes a JValue from a List of JValues
-   * 
-   * @param value The JValue we want to remove
-   *        eg: JString("subscribe")
-   * @param list The List of JValues we are going
-   *        attempt to remove from
-   * @return the list minus the value if was found
-   *         or the original list
-   */
-  def remove(value: JValue, list: List[JValue]) = 
-    list diff List(value)
 
   /**
    * Returns our self-describing schema file.
