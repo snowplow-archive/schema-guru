@@ -1,5 +1,5 @@
 {
-  id": "8a1d6420-e9c4-11e2-b33e-f23c91699516",
+  "id": "8a1d6420-e9c4-11e2-b33e-f23c91699516",
   "created_on": "2013-07-09T20:25:45Z",
   "type": "incident.resolve",
   "data": {
