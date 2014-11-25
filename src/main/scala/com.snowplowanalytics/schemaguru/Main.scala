@@ -13,7 +13,10 @@
 package com.snowplowanalytics.schemaguru
 
 // Generators
-import generators.{JsonSchemaGenerator => JSG}
+import generators.{
+  JsonSchemaGenerator => JSG,
+  JsonSchemaMerger => JSM
+}
 
 // Scalaz
 import scalaz._
@@ -50,14 +53,14 @@ object Main {
     val successes = for {
       Success(json) <- returned
     } yield {
-      transformValueToArray(json)
+      JSG.jsonToSchema(json)
     }
 
-    val merged: JValue = mergeJson(successes)
+    println(pretty(render(successes(0))))
 
-    val schema: JValue = JSG.jsonToSchema(merged)
+    val merged = JSM.mergeJsonSchemas(successes)
 
-    println(pretty(render(schema)))
+    println(pretty(render(merged)))
   }
 
   /**
@@ -87,37 +90,5 @@ object Main {
           s"File [$filePath] fetching and parsing failed: [$exception]".fail
         }
       }
-    }
-
-  /**
-   * Merges the List of JSONs it is passed together into one 
-   * cumulative JSON
-   *
-   * @param in The list of JSONs we need to merge together
-   * @return the unified JSON 
-   */
-  private def mergeJson(in: List[JValue], accum: JValue = Nil): JValue = 
-    in match {
-      case x :: xs => mergeJson(xs, x.merge(accum))
-      case Nil     => accum
-    }
-
-  /**
-   * Converts all entities of the JSON into arrays so that we can merge 
-   * elements together without losing data. Need to pass in a JString 
-   * to each of these new arrays to differentiate between these and actual 
-   * arrays.
-   *
-   * @param json The JSON that needs to have its values updated
-   * @return the modified JSON
-   */
-  private def transformValueToArray(json: JValue): JValue = 
-    json transformField {
-      case (k, JString(v))  => (k, JArray(List(JString("type: name-value"), JString(v))))
-      case (k, JInt(v))     => (k, JArray(List(JString("type: name-value"), JInt(v))))
-      case (k, JDecimal(v)) => (k, JArray(List(JString("type: name-value"), JDecimal(v))))
-      case (k, JDouble(v))  => (k, JArray(List(JString("type: name-value"), JDouble(v))))
-      case (k, JBool(v))    => (k, JArray(List(JString("type: name-value"), JBool(v))))
-      case (k, JNull)       => (k, JArray(List(JString("type: name-value"), JNull)))
     }
 }
