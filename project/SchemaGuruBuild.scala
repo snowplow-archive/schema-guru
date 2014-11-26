@@ -38,6 +38,7 @@ object SchemaGuruBuild extends Build {
         Libraries.jsonValidator,    
         // Scala
         Libraries.scalaz7,
+        Libraries.algebird,
         Libraries.json4sJackson,
         Libraries.json4sScalaz,
         Libraries.igluClient,

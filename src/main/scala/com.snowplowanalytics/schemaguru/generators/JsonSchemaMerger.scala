@@ -34,12 +34,46 @@ import org.json4s.scalaz.JsonScalaz._
 object JsonSchemaMerger {
 
   /**
+   * Merges a pair of JSON Schemas represented by
+   * JValues. The output JSON Schema will validate
+   * any instance validated by either schema.
+   *
+   * @param left The first JSON Schema
+   * @param right The second JSON Schema
+   * @return the JSON Schema which is the superset of
+   *         both input JSON Schemas
+   */
+  def merge2(left: JValue, right: JValue): JValue =
+    formatMergedSchema(
+      formatSchemaForMerge(left) merge formatSchemaForMerge(right)
+    )
+
+  /**
+   * Merges a (possibly empty) collection of JSON Schemas
+   * represented by JValues. The output JSON Schema
+   * will validate any instance validated by any of
+   * the schemas in the collection.
+   *
+   * @param iter The collection of JSON Schemas we
+   *        want to merge
+   * @return the JSON Schema which is the superset of
+   *         all input JSON Schemas
+   */
+  def mergeN(iter: TraversableOnce[JValue]): Option[JValue] =
+    for {
+      s <- iter.reduceLeftOption {
+        formatSchemaForMerge(_) merge formatSchemaForMerge(_)
+      }
+    } yield formatMergedSchema(s)
+
+  /**
    * Merges a list of JsonSchemas together into one
    *
    * @param jsonSchemaList The list of Schemas which
    *        we want to merge
    * @return the cumulative JsonSchema
    */
+  // TODO: handle case where _starting_ List is empty (see: reduceLeftOption above)
   def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil): JValue =
     jsonSchemaList match {
       case x :: xs => mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(accum))
