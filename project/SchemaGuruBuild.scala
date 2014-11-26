@@ -32,29 +32,19 @@ object SchemaGuruBuild extends Build {
     .settings(
       libraryDependencies ++= Seq(
         // Java
-        Libraries.httpClient,
         Libraries.yodaTime,
         Libraries.yodaConvert,
-        Libraries.commonsLang,
-        Libraries.commonsIo,
-        Libraries.useragent,
         Libraries.jacksonDatabind,
-        Libraries.jsonValidator,  
-        Libraries.mavenArtifact,      
+        Libraries.jsonValidator,    
         // Scala
         Libraries.scalaz7,
-        Libraries.snowplowRawEvent,
-        Libraries.scalaUtil,
-        Libraries.refererParser,
-        Libraries.maxmindIplookups,
         Libraries.json4sJackson,
         Libraries.json4sScalaz,
-        Libraries.igluClient,        
+        Libraries.igluClient,
         // Scala (test only)
         Libraries.specs2,
         Libraries.scalazSpecs2,
-        Libraries.scalaCheck,
-        Libraries.commonsCodec
+        Libraries.scalaCheck
       )
     )
 }
