@@ -28,6 +28,7 @@ object Dependencies {
     val jsonValidator    = "2.2.3"
     // Scala
     val scalaz7          = "7.0.0"
+    val algebird         = "0.8.1"
     val json4s           = "3.2.11"
     val igluClient       = "0.1.1"
     // Scala (test only)
@@ -45,6 +46,7 @@ object Dependencies {
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
     // Scala
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
+    val algebird         = "com.twitter"                %% "algebird-core"             % V.algebird
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val json4sScalaz     = "org.json4s"                 %% "json4s-scalaz"             % V.json4s    
     val igluClient       = "com.snowplowanalytics"      %  "iglu-scala-client"         % V.igluClient
