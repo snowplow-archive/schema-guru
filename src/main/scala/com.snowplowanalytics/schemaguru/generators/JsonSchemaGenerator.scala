@@ -41,6 +41,17 @@ object JsonSchemaGenerator {
   // The current directory which we are pulling resources from
   private val BaseSchemaFile = "//vagrant//schema-guru//src//main//resources//base-jsonschema.json"
 
+  private object JsonSchemaType {
+    val StringT  = JObject(List(("type", JString("string"))))
+    val IntegerT = JObject(List(("type", JString("integer"))))
+    val DecimalT = JObject(List(("type", JString("number"))))
+    val DoubleT  = JObject(List(("type", JString("number"))))
+    val BooleanT = JObject(List(("type", JString("boolean"))))
+    val NullT    = JObject(List(("type", JString("null"))))
+  }
+
+
+
   /**
    * Will wrap JObjects and JArrays in JsonSchema
    * friendly style and will then begin the processing
@@ -73,12 +84,12 @@ object JsonSchemaGenerator {
         val jSchema: List[(String, JValue)] = x match {
           case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
           case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
-          case (k, JString(_))  => List((k, JObject(List(("type", JString("string"))))))
-          case (k, JInt(_))     => List((k, JObject(List(("type", JString("integer"))))))
-          case (k, JDecimal(_)) => List((k, JObject(List(("type", JString("number"))))))
-          case (k, JDouble(_))  => List((k, JObject(List(("type", JString("number"))))))
-          case (k, JBool(_))    => List((k, JObject(List(("type", JString("boolean"))))))
-          case (k, JNull)       => List((k, JObject(List(("type", JString("null"))))))
+          case (k, JString(_))  => List((k, JsonSchemaType.StringT))
+          case (k, JInt(_))     => List((k, JsonSchemaType.IntegerT))
+          case (k, JDecimal(_)) => List((k, JsonSchemaType.DecimalT))
+          case (k, JDouble(_))  => List((k, JsonSchemaType.DoubleT))
+          case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
+          case (k, JNull)       => List((k, JsonSchemaType.NullT))
         }
         jObjectListProcessor(xs, (accum ++ jSchema))
       }
@@ -102,19 +113,18 @@ object JsonSchemaGenerator {
         val jType = x match {
           case JObject(v)  => jsonToSchema(JObject(v))
           case JArray(v)   => jsonToSchema(JArray(v))
-          case JString(_)  => JObject(List(("type", JString("string"))))
-          case JInt(_)     => JObject(List(("type", JString("integer"))))
-          case JDecimal(_) => JObject(List(("type", JString("number"))))
-          case JDouble(_)  => JObject(List(("type", JString("number"))))
-          case JBool(_)    => JObject(List(("type", JString("boolean"))))
-          case JNull       => JObject(List(("type", JString("null"))))
+          case JString(_)  => JsonSchemaType.StringT
+          case JInt(_)     => JsonSchemaType.IntegerT
+          case JDecimal(_) => JsonSchemaType.DecimalT
+          case JDouble(_)  => JsonSchemaType.DoubleT
+          case JBool(_)    => JsonSchemaType.BooleanT
+          case JNull       => JsonSchemaType.NullT
         }
         jArrayListProcessor(xs, (accum ++ List(jType)))
       }
       case Nil => {
         accum match { 
           case list if list.size == 1 => list(0) 
-          case list if list.size > 1  => JArray(list)
           case list                   => JArray(list)
         }
       }

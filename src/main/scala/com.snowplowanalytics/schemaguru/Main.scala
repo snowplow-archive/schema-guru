@@ -38,7 +38,7 @@ import org.json4s.scalaz.JsonScalaz._
 object Main {
 
   // TODO: remove folder hardcoding
-  private val PathToRoot = "//vagrant//schema-guru//src//main//resources//"
+  private val PathToRoot = "//vagrant//Github//schema-guru//src//test//resources//"
   // System.getProperty("user.dir")
 
   def main(args: Array[String]) {
@@ -55,8 +55,6 @@ object Main {
     } yield {
       JSG.jsonToSchema(json)
     }
-
-    println(pretty(render(successes(0))))
 
     val merged = JSM.mergeJsonSchemas(successes)
 
