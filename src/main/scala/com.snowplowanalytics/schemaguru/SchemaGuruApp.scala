@@ -98,6 +98,7 @@ object SchemaGuru {
   // TODO: Turn JsonSchemaGenerator into Akka Actor
   def convertsJsonsToSchema(list: ValidJsonList): SchemaGuruResult = {
 
+    // TODO: Throw error if goodJsons list is Nil
     val goodJsons = for {
       Success(json) <- list
     } yield {
