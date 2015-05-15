@@ -56,7 +56,7 @@ object BuildSettings {
     },
 
     // Make this executable
-    mainClass in assembly := Some("com.snowplowanalytics.schemaguru.Main")
+    mainClass in assembly := Some("com.snowplowanalytics.schemaguru.SchemaGuruApp")
   )
 
   lazy val buildSettings = basicSettings ++ scalifySettings ++ sbtAssemblySettings

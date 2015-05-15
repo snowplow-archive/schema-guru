@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2015 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -12,18 +12,23 @@
  */
 package com.snowplowanalytics
 
-// Java
-import java.lang.{Integer => JInteger}
-
 // Scalaz
 import scalaz._
 import Scalaz._
 
-/**
- * Scala package object to hold types,
- * helper methods etc.
- *
- * See:
- * http://www.artima.com/scalazine/articles/package_objects.html
- */
-package object schemaguru {}
+// json4s
+import org.json4s._
+
+package object schemaguru {
+
+	/**
+	 * Case Class for containing the result
+	 * of running SchemaGuru
+	 */
+	case class SchemaGuruResult(schema: JValue, errors: List[String])
+
+	/**
+	 * Type Alias for a Valid list of JSONs
+	 */
+	type ValidJsonList = List[Validation[String, JValue]]
+}

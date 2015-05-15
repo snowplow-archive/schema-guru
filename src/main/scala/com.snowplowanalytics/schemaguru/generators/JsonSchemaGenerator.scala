@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2015 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -34,13 +34,17 @@ import org.json4s.scalaz.JsonScalaz._
  * - Merge the JsonSchema with our BaseSchema
  * - Add ability to pass parameters which we will add to the BaseSchema: description, vendor, name
  * - Add ability to process primitive JSONs: i.e. { "primitive" }
- * - I am sure there are more things...
+ * - Ensure all matches are exhaustive
  */
 object JsonSchemaGenerator {
 
   // The current directory which we are pulling resources from
   private val BaseSchemaFile = "//vagrant//schema-guru//src//main//resources//base-jsonschema.json"
 
+  /** 
+   * Object to contain different
+   * types of Json Objects
+   */
   private object JsonSchemaType {
     val StringT  = JObject(List(("type", JString("string"))))
     val IntegerT = JObject(List(("type", JString("integer"))))
@@ -48,9 +52,8 @@ object JsonSchemaGenerator {
     val DoubleT  = JObject(List(("type", JString("number"))))
     val BooleanT = JObject(List(("type", JString("boolean"))))
     val NullT    = JObject(List(("type", JString("null"))))
+    val NothingT = JObject(List(("type", JString("null"))))
   }
-
-
 
   /**
    * Will wrap JObjects and JArrays in JsonSchema
@@ -65,6 +68,7 @@ object JsonSchemaGenerator {
     json match {
       case JObject(x) => JObject(List(("type", JString("object")), ("properties", JObject(jObjectListProcessor(x))), ("additionalProperties", JBool(false))))
       case JArray(x)  => JObject(List(("type", JString("array")), ("items", jArrayListProcessor(x))))
+      case _          => null
     }
 
   /**
@@ -90,6 +94,7 @@ object JsonSchemaGenerator {
           case (k, JDouble(_))  => List((k, JsonSchemaType.DoubleT))
           case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
           case (k, JNull)       => List((k, JsonSchemaType.NullT))
+          case (k, JNothing)    => List((k, JsonSchemaType.NothingT))
         }
         jObjectListProcessor(xs, (accum ++ jSchema))
       }
@@ -119,6 +124,7 @@ object JsonSchemaGenerator {
           case JDouble(_)  => JsonSchemaType.DoubleT
           case JBool(_)    => JsonSchemaType.BooleanT
           case JNull       => JsonSchemaType.NullT
+          case JNothing    => JsonSchemaType.NothingT
         }
         jArrayListProcessor(xs, (accum ++ List(jType)))
       }
@@ -147,11 +153,11 @@ object JsonSchemaGenerator {
       parse(content).success
     } catch {
       case e: JsonParseException => {
-        val exception = e.toString
+        val exception = e.getMessage
         s"File [$path] contents failed to parse into JSON: [$exception]".fail
       }
       case e: Exception => {
-        val exception = e.toString
+        val exception = e.getMessage
         s"File [$path] fetching and parsing failed: [$exception]".fail
       }
     }

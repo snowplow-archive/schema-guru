@@ -37,6 +37,7 @@ object SchemaGuruBuild extends Build {
         Libraries.jacksonDatabind,
         Libraries.jsonValidator,    
         // Scala
+        Libraries.argot,
         Libraries.scalaz7,
         Libraries.algebird,
         Libraries.json4sJackson,
