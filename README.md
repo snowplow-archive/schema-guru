@@ -10,6 +10,13 @@ guest$ cd /vagrant
 guest$ sbt compile
 ``` 
 
+To run SchemaGuru from SBT:
+
+```bash
+guest$ sbt
+schema-guru > run --dir {{jsons_directory}}
+```
+
 ### Packaging
 
 ```bash
