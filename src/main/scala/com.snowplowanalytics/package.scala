@@ -21,14 +21,14 @@ import org.json4s._
 
 package object schemaguru {
 
-	/**
-	 * Case Class for containing the result
-	 * of running SchemaGuru
-	 */
-	case class SchemaGuruResult(schema: JValue, errors: List[String])
+  /**
+   * Case Class for containing the result
+   * of running SchemaGuru
+   */
+  case class SchemaGuruResult(schema: JValue, errors: List[String])
 
-	/**
-	 * Type Alias for a Valid list of JSONs
-	 */
-	type ValidJsonList = List[Validation[String, JValue]]
+  /**
+   * Type Alias for a Valid list of JSONs
+   */
+  type ValidJsonList = List[Validation[String, JValue]]
 }
