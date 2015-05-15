@@ -1,4 +1,4 @@
-### Quickstart
+## Quickstart
 
 Assuming git, Vagrant and VirtualBox are installed:
 
@@ -16,6 +16,22 @@ To run SchemaGuru from SBT:
 guest$ sbt
 schema-guru > run --dir {{jsons_directory}}
 ```
+
+### Current Assumptions
+
+* All JSONs in the directory are assumed to be of the same event type and will be merged together.
+* All JSONs are assumed to start with either `{ ... }` or `[ ... ]`
+  - If they do not they are discarded
+
+### Current Functionality
+
+* Can take a directory as an argument and will print out the resulting JsonSchema:
+  - Processes each JSON sequentially
+  - Merges all results into one master JsonSchema
+
+### What it does not do yet...
+
+SchemaGuru only looks at the type of the field in the JSON, currently it does not bother trying to decipher what sort of field it could be.  For example detecting date-times in Strings or determining any hard limits on a particular field.
 
 ### Packaging
 
