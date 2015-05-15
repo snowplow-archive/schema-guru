@@ -1,5 +1,14 @@
+### Quickstart
 
+Assuming git, Vagrant and VirtualBox are installed:
 
+```bash
+ host$ git clone https://github.com/snowplow/schema-guru.git
+ host$ cd schema-guru
+ host$ vagrant up && vagrant ssh
+guest$ cd /vagrant
+guest$ sbt compile
+``` 
 
 ### Packaging
 
