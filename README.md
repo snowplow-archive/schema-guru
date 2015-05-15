@@ -33,6 +33,8 @@ schema-guru > run --dir {{jsons_directory}}
 
 SchemaGuru only looks at the type of the field in the JSON, currently it does not bother trying to decipher what sort of field it could be.  For example detecting date-times in Strings or determining any hard limits on a particular field.
 
+SchemaGuru also produces a very strict Schema in that there are zero additionalProperties allowed currently.
+
 ### Packaging
 
 ```bash
