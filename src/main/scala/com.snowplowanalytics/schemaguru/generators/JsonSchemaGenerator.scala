@@ -13,8 +13,6 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
-//import scala.util.{Try, Success, Failure}
-
 // Scalaz
 import scalaz._
 import Scalaz._
@@ -85,7 +83,6 @@ object JsonSchemaGenerator {
    * @return the contents of the processed JObject list
    */
   def jObjectListProcessor(jObjectList: List[(String, JValue)], accum: List[(String, JValue)] = List()): List[(String, JValue)] =
-
     jObjectList match {
       case x :: xs => {
         val jSchema: List[(String, JValue)] = x match {
@@ -188,9 +185,6 @@ object JsonSchemaGenerator {
 
   object Enrichment {
     import org.joda.time.DateTime.parse
-    import org.json4s.DefaultFormats
-
-//    implicit val formats = DefaultFormats
 
     /**
      * Checks if string is valid ISO-8601 date
