@@ -13,6 +13,8 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
+//import scala.util.{Try, Success, Failure}
+
 // Scalaz
 import scalaz._
 import Scalaz._
@@ -83,12 +85,13 @@ object JsonSchemaGenerator {
    * @return the contents of the processed JObject list
    */
   def jObjectListProcessor(jObjectList: List[(String, JValue)], accum: List[(String, JValue)] = List()): List[(String, JValue)] =
+
     jObjectList match {
       case x :: xs => {
         val jSchema: List[(String, JValue)] = x match {
           case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
           case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
-          case (k, JString(_))  => List((k, JsonSchemaType.StringT))
+          case (k, JString(v))  => List((k, Enrichment.enrichString(v)) )
           case (k, JInt(_))     => List((k, JsonSchemaType.IntegerT))
           case (k, JDecimal(_)) => List((k, JsonSchemaType.DecimalT))
           case (k, JDouble(_))  => List((k, JsonSchemaType.DoubleT))
@@ -181,4 +184,37 @@ object JsonSchemaGenerator {
       case ("vendor", JString(_))      => ("vendor", JString(vendor))
       case ("name", JString(_))        => ("name", JString(name))
     }
+
+
+  object Enrichment {
+    import org.joda.time.DateTime.parse
+    import org.json4s.DefaultFormats
+
+//    implicit val formats = DefaultFormats
+
+    /**
+     * Checks if string is valid ISO-8601 date
+     */
+    def validateDateTime(string: String): Validation[Throwable, _] = {
+      try {
+        parse(string)
+        Success(string)
+      } catch {
+        case e: IllegalArgumentException => Failure(e)
+      }
+    }
+
+    /**
+     * Adds properties to string field
+     *
+     * @return JsonSchemaType with recognized properties
+     */
+    def enrichString(value: String) = {
+      validateDateTime(value) match {
+        case Success(_) => JsonSchemaType.StringT merge JObject(List(("format", JString("date-time"))))
+        case Failure(_) => JsonSchemaType.StringT
+      }
+    }
+  }
 }
+
