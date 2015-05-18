@@ -59,6 +59,8 @@ object SchemaGuruApp extends App {
     (c, _) => { SchemaGuru.getJsonsFromFolder(c) }
   }
 
+  val outputFileArgument = parser.option[String]("output", "file", "Output file") { (c, _) => c }
+
   parser.parse(args)
 
   val jsonList = directoryArgument
@@ -69,15 +71,23 @@ object SchemaGuruApp extends App {
     case Nil       => parser.usage("Directory does not contain any JSON files.")
     case someJsons => {
 
-      // TODO: Store final JsonSchema to disk
-      //       Upload JsonSchema
+      // Upload JsonSchema
       val result = SchemaGuru.convertsJsonsToSchema(someJsons)
 
-      // Print JsonSchema
-      println(pretty(render(result.schema)))
+      // Print JsonSchema to file or stdout
+      outputFileArgument.value match {
+        case Some(file) => {
+          val output = new java.io.PrintWriter(file)
+          output.write(pretty(render(result.schema)))
+          output.close()
+        }
+        case None => println(pretty(render(result.schema)))
+      }
 
       // Print Errors
-      println(result.errors)
+      if (!result.errors.isEmpty) {
+        println("Errors:\n " + result.errors.mkString("\n"))
+      }
     }
   }
 }
