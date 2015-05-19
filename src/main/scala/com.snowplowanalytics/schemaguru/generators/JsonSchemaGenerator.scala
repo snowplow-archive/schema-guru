@@ -59,6 +59,8 @@ object JsonSchemaGenerator {
    * Will wrap JObjects and JArrays in JsonSchema
    * friendly style and will then begin the processing
    * of the internal lists.
+   * Used fot top-level objects and arrays, thus shall not
+   * be used for anything other than objects and arrays.
    *
    * @param json the JSON that needs to be processed
    *        into JsonSchema
@@ -191,8 +193,7 @@ object JsonSchemaGenerator {
      */
     def validateDateTime(string: String): Validation[Throwable, _] = {
       try {
-        parse(string)
-        Success(string)
+        Success(parse(string))
       } catch {
         case e: IllegalArgumentException => Failure(e)
       }
