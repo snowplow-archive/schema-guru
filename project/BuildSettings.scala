@@ -23,7 +23,7 @@ object BuildSettings {
     organization          :=  "com.snowplowanalytics",
     version               :=  "0.1.0-M1",
     description           :=  "For deriving JSON Schemas from collections of JSON instances",
-    scalaVersion          :=  "2.10.1",
+    scalaVersion          :=  "2.10.5",
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
                                   "-unchecked", "-feature",
                                   "-target:jvm-1.7"),

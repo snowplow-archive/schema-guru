@@ -28,13 +28,13 @@ object Dependencies {
     val jsonValidator    = "2.2.3"
     // Scala
     val argot            = "1.0.1"
-    val scalaz7          = "7.0.0"
+    val scalaz7          = "7.0.6"
     val algebird         = "0.8.1"
     val json4s           = "3.2.11"
     val igluClient       = "0.1.1"
     // Scala (test only)
-    val specs2           = "1.14"
-    val scalazSpecs2     = "0.1.2"
+    val specs2           = "2.3"
+    val scalazSpecs2     = "0.2"
     val scalaCheck       = "1.10.0"
     val commonsCodec     = "1.5"
   }
