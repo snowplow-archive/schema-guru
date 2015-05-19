@@ -142,11 +142,11 @@ object SchemaGuru {
       } catch {
         case e: JsonParseException => {
           val exception = e.getMessage
-          s"File [$filePath] contents failed to parse into JSON: [$exception]".fail
+          s"File [$filePath] contents failed to parse into JSON: [$exception]".failure
         }
         case e: Exception => {
           val exception = e.getMessage
-          s"File [$filePath] fetching and parsing failed: [$exception]".fail
+          s"File [$filePath] fetching and parsing failed: [$exception]".failure
         }
       }
     }

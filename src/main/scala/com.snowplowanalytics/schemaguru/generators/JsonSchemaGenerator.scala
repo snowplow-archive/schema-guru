@@ -68,8 +68,8 @@ object JsonSchemaGenerator {
    */
   def jsonToSchema(json: JValue): JValue =
     json match {
-      case JObject(x) => JObject(List(("type", JString("object")), ("properties", JObject(jObjectListProcessor(x))), ("additionalProperties", JBool(false))))
-      case JArray(x)  => JObject(List(("type", JString("array")), ("items", jArrayListProcessor(x))))
+      case JObject(x) => ("type", "object") ~ ("properties", jObjectListProcessor(x)) ~ ("additionalProperties", false)
+      case JArray(x)  => ("type", "array") ~ ("items", jArrayListProcessor(x))
       case _          => null
     }
 
@@ -156,11 +156,11 @@ object JsonSchemaGenerator {
     } catch {
       case e: JsonParseException => {
         val exception = e.getMessage
-        s"File [$path] contents failed to parse into JSON: [$exception]".fail
+        s"File [$path] contents failed to parse into JSON: [$exception]".failure
       }
       case e: Exception => {
         val exception = e.getMessage
-        s"File [$path] fetching and parsing failed: [$exception]".fail
+        s"File [$path] fetching and parsing failed: [$exception]".failure
       }
     }
 
@@ -193,9 +193,9 @@ object JsonSchemaGenerator {
      */
     def validateDateTime(string: String): Validation[Throwable, _] = {
       try {
-        Success(parse(string))
+        parse(string).success
       } catch {
-        case e: IllegalArgumentException => Failure(e)
+        case e: IllegalArgumentException => e.failure
       }
     }
 
@@ -206,7 +206,7 @@ object JsonSchemaGenerator {
      */
     def enrichString(value: String) = {
       validateDateTime(value) match {
-        case Success(_) => JsonSchemaType.StringT merge JObject(List(("format", JString("date-time"))))
+        case Success(_) => JsonSchemaType.StringT ~ ("format", "date-time")
         case Failure(_) => JsonSchemaType.StringT
       }
     }
