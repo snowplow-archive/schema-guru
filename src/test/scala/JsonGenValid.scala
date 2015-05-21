@@ -1,92 +1,69 @@
-import scala.util.parsing.json._
-
+import com.github.fge.jsonschema.main.{JsonSchema, JsonSchemaFactory}
 import org.joda.time.DateTime
-import org.json4s.JsonAST.JObject
-import scalaz._, Scalaz._
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
 
 import org.scalacheck._
 import org.specs2.scalaz.ValidationMatchers
 import org.specs2.{Specification, ScalaCheck}
 
-import com.snowplowanalytics.schemaguru.SchemaGuru.convertsJsonsToSchema
-import com.snowplowanalytics.schemaguru.ValidJsonList
+import com.snowplowanalytics.schemaguru.generators.JsonSchemaGenerator.jsonToSchema
 
 
-class SelfValidSpe extends Specification with ScalaCheck with ValidationMatchers with JsonGen { def is = s2"""
+class SelfValidSpecification extends Specification with ScalaCheck with ValidationMatchers with JsonGen { def is = s2"""
   Derive schema from random generated JSON and validate against itself
+    validate random JSON against derived schema            $validateJsonAgainstDerivedSchema
   """
 
-  def generateObject = prop { (event: JObject) =>
-    val validJson: ValidJsonList = List(event.success)
-    val schema = convertsJsonsToSchema(validJson)
+  def validateJsonAgainstDerivedSchema = prop { (json: JValue) =>
+    val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
+    val derivedSchema = asJsonNode(jsonToSchema(json))
+    val schemaSchema: JsonSchema = factory.getJsonSchema(derivedSchema)
 
-  }.pendingUntilFixed
+    schemaSchema.validate(asJsonNode(json)).isSuccess must beTrue
+  }
 }
 
 /**
  * Trait responsible for arbitrary JSON
  */
 trait JsonGen {
-  /**
-   * Generate String of valid ISO-8601 date
-   */
+  implicit def arbitraryJsonType: Arbitrary[JValue] =
+    Arbitrary { Gen.sized(depth => jsonType(2)) }  // random depth or depth > 4 possible bad idea
+
   def arbitaryIsoDate: Arbitrary[String] =
     Arbitrary(Gen.choose(0L, 1922659200L * 1000).map(new DateTime(_).toString))
 
-  /**
-   * Generate either a JSONArray or a JSONObject
-   */
-  def jsonType(depth: Int): Gen[JSONType] = Gen.oneOf(jsonArray(depth), jsonObject(depth))
+  def jsonType(depth: Int): Gen[JValue] =
+    Gen.oneOf(jsonArray(depth), jsonObject(depth))
 
-  /**
-   * Generate a JSONArray
-   */
-  def jsonArray(depth: Int): Gen[JSONArray] = for {
-    n    <- Gen.choose(1, 4)        // length of array
+  def jsonArray(depth: Int): Gen[JArray] = for {
+    n    <- Gen.choose(1, 4)
     vals <- values(n, depth)
-  } yield JSONArray(vals)
+  } yield JArray(vals)
 
-  /**
-   * Generate a JSONObject
-   */
-  def jsonObject(depth: Int): Gen[JSONObject] = for {
-    n    <- Gen.choose(1, 3)
-    ks   <- keys(n)
+  def jsonObject(depth: Int): Gen[JObject] = for {
+    n <- Gen.choose(1, 4)
+    ks <- keys(n)
     vals <- values(n, depth)
-  } yield JSONObject(Map((ks zip vals):_*))
+  } yield JObject((ks zip vals):_*)
 
-  /**
-   * Generate a list of keys to be used in the map of a JSONObject
-   */
-  def keys(n: Int) = Gen.listOfN(n, Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString))
+  def keys(n: Int) =
+    Gen.listOfN(n, Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString))
 
-  /**
-   * Generate a list of values to be used in the map of a JSONObject or in the list
-   * of a JSONArray.
-   */
-  def values(n: Int, depth: Int) = Gen.listOfN(n, value(depth))
+  def values(n: Int, depth: Int) =
+    Gen.listOfN(n, value(depth))
 
-  /**
-   * Generate a value to be used in the map of a JSONObject or in the list
-   * of a JSONArray.
-   */
-  def value(depth: Int) =
+  def value(depth: Int): Gen[JValue] =
     if (depth == 0)
       terminalType
     else
       Gen.oneOf(jsonType(depth - 1), terminalType)
 
-  /**
-   * Generate a terminal non-object value.
-   * One of numeric, alphaNumeric, string, etc
-   */
-  def terminalType = {
-    Gen.oneOf(
-      Gen.listOf(Gen.alphaNumChar).map(_.mkString),
-      Arbitrary.arbitrary[Int],
-      Arbitrary.arbitrary(arbitaryIsoDate),
-      Arbitrary.arbitrary[Boolean]
-    )
-  }
+  def terminalType: Gen[JValue] = Gen.oneOf(
+    Gen.listOf(Gen.alphaChar).map(_.mkString).suchThat(_.forall(_.isLetter)).map(JString(_)),
+    Arbitrary.arbitrary(arbitaryIsoDate).map(JString(_)),
+    Arbitrary.arbitrary[Int].map(JInt(_)),
+    Arbitrary.arbitrary[Boolean].map(JBool(_))
+  )
 }
-
