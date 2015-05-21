@@ -26,6 +26,7 @@ object Dependencies {
     val yodaConvert      = "1.2"
     val jacksonDatabind  = "2.2.3"
     val jsonValidator    = "2.2.3"
+    val commonsValidator = "1.4.1"
     // Scala
     val argot            = "1.0.1"
     val scalaz7          = "7.0.6"
@@ -45,6 +46,7 @@ object Dependencies {
     val yodaConvert      = "org.joda"                   %  "joda-convert"              % V.yodaConvert
     val jacksonDatabind  = "com.fasterxml.jackson.core" %  "jackson-databind"          % V.jacksonDatabind
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
+    val commonsValidator = "commons-validator"          %  "commons-validator"         % V.commonsValidator
     // Scala
     val argot            = "org.clapper"                %% "argot"                     % V.argot
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
