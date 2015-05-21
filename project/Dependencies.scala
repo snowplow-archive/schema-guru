@@ -33,9 +33,9 @@ object Dependencies {
     val json4s           = "3.2.11"
     val igluClient       = "0.1.1"
     // Scala (test only)
-    val specs2           = "2.3"
+    val specs2           = "2.3.13"
     val scalazSpecs2     = "0.2"
-    val scalaCheck       = "1.10.0"
+    val scalaCheck       = "1.12.2"
     val commonsCodec     = "1.5"
   }
 

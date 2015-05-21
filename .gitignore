@@ -1,6 +1,7 @@
 *.class
 *.log
 .idea
+.DS_Store
 
 # Scala worksheets
 src/test/scala/*.sc
