@@ -186,16 +186,45 @@ object JsonSchemaGenerator {
 
 
   object Enrichment {
+    import java.util.UUID
     import org.joda.time.DateTime.parse
 
-    /**
-     * Checks if string is valid ISO-8601 date
-     */
-    def validateDateTime(string: String): Validation[Throwable, _] = {
+    def suggestTimeFormat(string: String): Option[String] = {
+      if (string.length > 10) { // TODO: find a better way to exclude truncated ISO 8601:2000 values
+        try {
+          parse(string)
+          Some("date-time")
+        } catch {
+          case e: IllegalArgumentException => None
+        }
+      } else None
+    }
+
+    def suggestUuidFormat(string: String): Option[String] = {
       try {
-        parse(string).success
+        UUID.fromString(string)
+        Some("uuid")
       } catch {
-        case e: IllegalArgumentException => e.failure
+        case e: IllegalArgumentException => None
+      }
+    }
+
+    private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _)
+
+    /**
+     * Tries to guess format of the string
+     *
+     * @param value is a string we need to recognize
+     * @param suggestions list of functions can recognize format
+     * @return some format or none if nothing suites
+     */
+    def guessFormat(value: String, suggestions: List[String => Option[String]]): Option[String] = {
+      suggestions match {
+        case Nil => None
+        case suggestion :: tail => suggestion(value) match {
+          case Some(format) => Some(format)
+          case None => guessFormat(value, tail)
+        }
       }
     }
 
@@ -205,9 +234,9 @@ object JsonSchemaGenerator {
      * @return JsonSchemaType with recognized properties
      */
     def enrichString(value: String) = {
-      validateDateTime(value) match {
-        case Success(_) => JsonSchemaType.StringT ~ ("format", "date-time")
-        case Failure(_) => JsonSchemaType.StringT
+      guessFormat(value, formatSuggestions) match {
+        case Some(format) => JsonSchemaType.StringT ~ ("format", format)
+        case None         => JsonSchemaType.StringT
       }
     }
   }
