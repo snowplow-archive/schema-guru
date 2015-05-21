@@ -35,7 +35,8 @@ object SchemaGuruBuild extends Build {
         Libraries.yodaTime,
         Libraries.yodaConvert,
         Libraries.jacksonDatabind,
-        Libraries.jsonValidator,    
+        Libraries.jsonValidator,
+        Libraries.commonsValidator,
         // Scala
         Libraries.argot,
         Libraries.scalaz7,
