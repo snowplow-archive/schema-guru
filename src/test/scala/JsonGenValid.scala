@@ -62,6 +62,7 @@ trait JsonGen {
 
   def terminalType: Gen[JValue] = Gen.oneOf(
     Gen.listOf(Gen.alphaChar).map(_.mkString).suchThat(_.forall(_.isLetter)).map(JString(_)),
+    Gen.uuid.map(x => JString(x.toString)),
     Arbitrary.arbitrary(arbitaryIsoDate).map(JString(_)),
     Arbitrary.arbitrary[Int].map(JInt(_)),
     Arbitrary.arbitrary[Boolean].map(JBool(_))
