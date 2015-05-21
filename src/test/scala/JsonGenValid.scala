@@ -21,7 +21,7 @@ class SelfValidSpecification extends Specification with ScalaCheck with Validati
     val schemaSchema: JsonSchema = factory.getJsonSchema(derivedSchema)
 
     schemaSchema.validate(asJsonNode(json)).isSuccess must beTrue
-  }
+  }.set(maxSize = 20)
 }
 
 /**
@@ -29,7 +29,7 @@ class SelfValidSpecification extends Specification with ScalaCheck with Validati
  */
 trait JsonGen {
   implicit def arbitraryJsonType: Arbitrary[JValue] =
-    Arbitrary { Gen.sized(depth => jsonType(2)) }  // random depth or depth > 4 possible bad idea
+    Arbitrary { Gen.sized(depth => jsonType(depth)) }
 
   def arbitaryIsoDate: Arbitrary[String] =
     Arbitrary(Gen.choose(0L, 1922659200L * 1000).map(new DateTime(_).toString))
