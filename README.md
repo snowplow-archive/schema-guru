@@ -1,3 +1,7 @@
+# SchemaGuru
+
+[![Build Status](https://travis-ci.org/snowplow/schema-guru.svg?branch=master)](https://travis-ci.org/snowplow/schema-guru)
+
 ## Quickstart
 
 Assuming git, Vagrant and VirtualBox are installed:
