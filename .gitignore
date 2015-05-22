@@ -17,3 +17,6 @@ project/plugins/project/
 # Vagrant
 .vagrant
 VERSION
+
+# Development
+TAGS

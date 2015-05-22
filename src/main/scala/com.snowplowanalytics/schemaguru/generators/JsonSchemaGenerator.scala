@@ -217,7 +217,56 @@ object JsonSchemaGenerator {
       else None
     }
 
-    private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _, suggestIpFormat _)
+    def suggestBoolean(string: String): Option[String]  = {
+      string.parseBoolean match {
+        case Success(n) => Some("boolean")
+        case Failure(n) => None
+      }
+    }
+
+    /**
+      * Cycles through whole number integer data types
+      * Short, Integer, and Long. The smallest matching data
+      * structure is returned, else we assume Long type
+      *
+      * @param String string to be enriched
+      * @return Option[String] with the found data type
+      */
+    def suggestInteger(string: String): Option[String]  = {
+      try {
+        string.toLong match {
+          case n if n.isValidShort => Some("short")
+          case n if n.isValidInt => Some("int")
+          case _ => Some("long")
+        }
+      } catch {
+        case e: IllegalArgumentException => None
+      }
+    }
+
+    /**
+      * Attempts to parse string to Double. If successfull
+      * returns double data type, else None
+      *
+      * @param String string to be enriched
+      * @return Option[String] with the found data type
+      */
+    def suggestDecimal(string: String): Option[String]  = {
+      string.parseDouble match {
+        case Success(n) => Some("double")
+        case Failure(n) => None
+      }
+    }
+
+
+    private val formatSuggestions = List(
+      suggestUuidFormat _,
+      suggestTimeFormat _,
+      suggestIpFormat _,
+      suggestBoolean _,
+      suggestInteger _,
+      suggestDecimal _
+    )
 
     /**
      * Tries to guess format of the string
@@ -242,7 +291,12 @@ object JsonSchemaGenerator {
      * @return JsonSchemaType with recognized properties
      */
     def enrichString(value: String) = {
-      guessFormat(value, formatSuggestions) match {
+      guessFormat(value.trim, formatSuggestions) match {
+        case Some("short") => JsonSchemaType.IntegerT ~ ("format", "short")
+        case Some("int") => JsonSchemaType.IntegerT ~ ("format", "int")
+        case Some("long") => JsonSchemaType.IntegerT ~ ("format", "long")
+        case Some("double") => JsonSchemaType.DoubleT ~ ("format", "double")
+        case Some("boolean") => JsonSchemaType.BooleanT
         case Some(format) => JsonSchemaType.StringT ~ ("format", format)
         case None         => JsonSchemaType.StringT
       }
