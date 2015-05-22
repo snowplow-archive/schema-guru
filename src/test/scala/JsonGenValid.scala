@@ -31,7 +31,7 @@ trait JsonGen {
   implicit def arbitraryJsonType: Arbitrary[JValue] =
     Arbitrary { Gen.sized(depth => jsonType(depth)) }
 
-  def arbitaryIsoDate: Arbitrary[String] =
+  def arbitraryIsoDate: Arbitrary[String] =
     Arbitrary(Gen.choose(0L, 1922659200L * 1000).map(new DateTime(_).toString))
 
   def jsonType(depth: Int): Gen[JValue] =
@@ -48,7 +48,7 @@ trait JsonGen {
     vals <- values(n, depth)
   } yield JObject((ks zip vals):_*)
 
-  def keys(n: Int) =
+  def keys(n: Int): Gen[List[String]] =
     Gen.listOfN(n, Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString))
 
   def values(n: Int, depth: Int) =
@@ -61,10 +61,37 @@ trait JsonGen {
       Gen.oneOf(jsonType(depth - 1), terminalType)
 
   def terminalType: Gen[JValue] = Gen.oneOf(
-    Gen.listOf(Gen.alphaChar).map(_.mkString).suchThat(_.forall(_.isLetter)).map(JString(_)),
-    Gen.uuid.map(x => JString(x.toString)),
-    Arbitrary.arbitrary(arbitaryIsoDate).map(JString(_)),
-    Arbitrary.arbitrary[Int].map(JInt(_)),
-    Arbitrary.arbitrary[Boolean].map(JBool(_))
+    arbitraryJString,
+    arbitraryJInt,
+    arbitraryJBool,
+    arbitraryJUuid,
+    arbitraryJIsoDate
   )
+
+  def arbitraryJString =
+    Gen.listOf(Gen.alphaChar).map(_.mkString).suchThat(_.forall(_.isLetter)).map(JString(_))
+
+  def arbitraryJInt =
+    Arbitrary.arbitrary[Int].map(JInt(_))
+
+  def arbitraryJBool =
+    Arbitrary.arbitrary[Boolean].map(JBool(_))
+
+  def arbitraryJUuid =
+    Gen.uuid.map(x => JString(x.toString))
+
+  def arbitraryJIsoDate =
+    Arbitrary.arbitrary(arbitraryIsoDate).map(JString(_))
+
+  /**
+   * Generates JSON with predefined keys and specified types
+   * 
+   * @param typeMap map of key to arbitrary JValues
+   * @return arbitrary JSON with predefined keys and arbitrary values
+   */
+  def generateJsonWithKeys(typeMap: Map[String, Gen[JValue]]): Gen[JObject] = {
+    val mapWithGeneratedValues = for { (k: String, v: Gen[JValue]) <- typeMap; vl <- v.sample} yield (k, vl)
+    val jObject = JObject(mapWithGeneratedValues.toList)
+    Gen.const(jObject)
+  }
 }
