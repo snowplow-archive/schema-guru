@@ -1,10 +1,9 @@
 import org.json4s.JsonAST.{JInt, JObject, JString}
-import org.specs2.scalaz.ValidationMatchers
-import org.specs2.{ScalaCheck, Specification}
+import org.specs2.Specification
 
 import com.snowplowanalytics.schemaguru.generators.JsonSchemaGenerator.Enrichment
 
-class IntegerRangeEnrichmentSpecification extends Specification with ValidationMatchers  { def is = s2"""
+class IntegerRangeEnrichmentSpecification extends Specification { def is = s2"""
   Check integer range
     guess zero as Int32                        $guessZero
     guess Int16                                $guessInt16
