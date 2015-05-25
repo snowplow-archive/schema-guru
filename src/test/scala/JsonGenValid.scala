@@ -13,15 +13,35 @@ import com.snowplowanalytics.schemaguru.generators.JsonSchemaGenerator.jsonToSch
 class SelfValidSpecification extends Specification with ScalaCheck with ValidationMatchers with JsonGen { def is = s2"""
   Derive schema from random generated JSON and validate against itself
     validate random JSON against derived schema            $validateJsonAgainstDerivedSchema
+    validate any JSON against empty schema                 $validateJsonAgainstEmptySchema
+    fail to validate mismatched (Int/String) key           $validateAgainstWrongSchema
   """
 
   def validateJsonAgainstDerivedSchema = prop { (json: JValue) =>
     val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
     val derivedSchema = asJsonNode(jsonToSchema(json))
-    val schemaSchema: JsonSchema = factory.getJsonSchema(derivedSchema)
+    val schema: JsonSchema = factory.getJsonSchema(derivedSchema)
 
-    schemaSchema.validate(asJsonNode(json)).isSuccess must beTrue
+    schema.validate(asJsonNode(json)).isSuccess must beTrue
   }.set(maxSize = 20)
+
+  def validateJsonAgainstEmptySchema = prop { (json: JValue) =>
+    val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
+    val emptySchema = asJsonNode(parse("{}"))
+    val schema: JsonSchema = factory.getJsonSchema(emptySchema)
+
+    schema.validate(asJsonNode(json)).isSuccess must beTrue
+  }.set(maxSize = 15)
+
+  def validateAgainstWrongSchema = Prop.forAll(generateJsonWithKeys(Map("mismatched_key" -> arbitraryJInt)),
+                                               generateJsonWithKeys(Map("mismatched_key" -> arbitraryJString)))
+  { (jsonForSchema: JValue, json: JValue) =>
+    val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
+    val derivedInvalidSchema = asJsonNode(jsonToSchema(jsonForSchema))
+    val invalidSchema: JsonSchema = factory.getJsonSchema(derivedInvalidSchema)
+
+    invalidSchema.validate(asJsonNode(json)).isSuccess must beFalse
+  }
 }
 
 /**
