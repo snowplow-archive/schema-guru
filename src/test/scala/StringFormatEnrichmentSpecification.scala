@@ -1,11 +1,11 @@
 import org.specs2.scalaz.ValidationMatchers
-import org.specs2.{Specification, ScalaCheck}
+import org.specs2.Specification
 import org.json4s.JsonAST.{JObject, JString}
 
 import com.snowplowanalytics.schemaguru.generators.JsonSchemaGenerator.Enrichment
 
 
-class StringEnrichSpecification extends Specification with ScalaCheck with ValidationMatchers  { def is = s2"""
+class StringFormatEnrichmentSpecification extends Specification with ValidationMatchers  { def is = s2"""
   Check string type enrichment
     recognize UUID                            $recognizeUuid
     recognize ISO date                        $recognizeIsoDate
