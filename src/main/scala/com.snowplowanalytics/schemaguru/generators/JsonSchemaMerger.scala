@@ -46,7 +46,7 @@ object JsonSchemaMerger {
    *         both input JSON Schemas
    */
   def merge2(left: JValue, right: JValue): JValue =
-    formatMergedSchema(
+    reduceMergedSchema(
       formatSchemaForMerge(left) merge formatSchemaForMerge(right)
     )
 
@@ -66,7 +66,7 @@ object JsonSchemaMerger {
       s <- iter.reduceLeftOption {
         formatSchemaForMerge(_) merge formatSchemaForMerge(_)
       }
-    } yield formatMergedSchema(s)
+    } yield reduceMergedSchema(s)
 
   /**
    * Merges a list of JsonSchemas together into one
@@ -79,7 +79,7 @@ object JsonSchemaMerger {
   def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil): JValue =
     jsonSchemaList match {
       case x :: xs => mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(accum))
-      case Nil     => formatMergedSchema(accum)
+      case Nil     => reduceMergedSchema(accum)
     }
 
   /**
@@ -100,15 +100,15 @@ object JsonSchemaMerger {
     }
 
   /**
-   * Cleans up instances where the type descriptor
-   * for a key has an array of length 1.
+   * Reduces array to single value
    *
    * i.e. "type" : ["string"] -> "type" : "string"
+   *      "maximum" : [0, 10] -> "type" : 10
    *
-   * @param jsonSchema The Schema we now want to clean
-   * @return the formatted JsonSchema ready for publishing
+   * @param jsonSchema The Schema we now want to reduce
+   * @return the reduced JsonSchema ready for publishing
    */
-  def formatMergedSchema(jsonSchema: JValue): JValue =
+  def reduceMergedSchema(jsonSchema: JValue): JValue =
     jsonSchema transformField {
       case ("type", JArray(list))  => {
         ("type", list match {
