@@ -90,8 +90,8 @@ object JsonSchemaGenerator {
         val jSchema: List[(String, JValue)] = x match {
           case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
           case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
-          case (k, JString(v))  => List((k, Enrichment.enrichString(v)) )
-          case (k, JInt(_))     => List((k, JsonSchemaType.IntegerT))
+          case (k, JString(v))  => List((k, Enrichment.enrichString(v)))
+          case (k, JInt(v))     => List((k, Enrichment.enrichInteger(v)))
           case (k, JDecimal(_)) => List((k, JsonSchemaType.DecimalT))
           case (k, JDouble(_))  => List((k, JsonSchemaType.DoubleT))
           case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
@@ -245,6 +245,36 @@ object JsonSchemaGenerator {
       guessFormat(value, formatSuggestions) match {
         case Some(format) => JsonSchemaType.StringT ~ ("format", format)
         case None         => JsonSchemaType.StringT
+      }
+    }
+
+    /**
+     * Tries to guess numeric field range according to
+     * values of Int16, Int32, Int64
+     *
+     * @param value is a numeric value which should be lifted to it's range
+     * @return some pair of minimum and maximum value
+     */
+    def guessRange(value: BigInt): Option[(BigInt, BigInt)] = {
+      if (value >= -32768 && value <= 32767)
+        Some((-32768: BigInt, 32767: BigInt))
+      else if (value >= -2147483648 && value <= 2147483647)
+        Some((-2147483648: BigInt, 2147483647: BigInt))
+      else if (value >= -9223372036854775808L && value <= 9223372036854775807L)
+        Some((-9223372036854775808L: BigInt, 9223372036854775807L: BigInt))
+      else  // We should warn user
+        None
+    }
+
+    /**
+     * Adds properties to integer field
+     *
+     * @return JsonSchemaType with recognized properties
+     */
+    def enrichInteger(value: BigInt) = {
+      guessRange(value) match {
+        case Some(range) => JsonSchemaType.IntegerT ~ ("minimum", range._1) ~ ("maximum", range._2)
+        case None => JsonSchemaType.IntegerT
       }
     }
   }

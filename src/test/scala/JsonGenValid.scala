@@ -83,6 +83,12 @@ trait JsonGen {
   def arbitraryJIsoDate =
     Arbitrary.arbitrary(arbitraryIsoDate).map(JString(_))
 
+  def arbitraryJSmallInt =
+    Gen.choose(-32768, 32767).map(JInt(_))
+
+  def arbitraryJBigInt =
+    Arbitrary.arbitrary[BigInt].map(JInt(_))
+
   /**
    * Generates JSON with predefined keys and specified types
    * 
