@@ -27,6 +27,8 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz._
 
+import json.JValueOrdering
+
 /**
  * Takes a list of JsonSchemas and merges them together into
  * a master schema which will validate any of the sub schemas.
@@ -93,6 +95,8 @@ object JsonSchemaMerger {
     jsonSchema transformField {
       case ("type", JObject(v)) => ("type", JObject(v))
       case ("type", v)          => ("type", JArray(List(v)))
+      case ("maximum", m)       => ("maximum", JArray(List(m)))
+      case ("minimum", m)       => ("minimum", JArray(List(m)))
     }
 
   /**
@@ -110,6 +114,18 @@ object JsonSchemaMerger {
         ("type", list match {
           case list if list.size == 1 => list(0)
           case list                   => JArray(list)
+        })
+      }
+      case ("maximum", JArray(maxs)) => {
+        ("maximum", maxs match {
+          case list if list.size == 1 => list(0)
+          case list                   => list.max(JValueOrdering.toScalaOrdering)
+        })
+      }
+      case ("minimum", JArray(mins)) => {
+        ("minimum", mins match {
+          case list if list.size == 1 => list(0)
+          case list                   => list.min(JValueOrdering.toScalaOrdering)
         })
       }
     }

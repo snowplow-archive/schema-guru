@@ -6,6 +6,9 @@
 # Scala worksheets
 src/test/scala/*.sc
 
+# Secret data
+src/test/resources/sandbox
+
 # sbt specific
 dist/*
 target/
