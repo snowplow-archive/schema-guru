@@ -12,13 +12,15 @@ class MergeSpecification extends Specification with ValidationMatchers  { def is
     maintain all types in array                            $maintainTypesInArray
     merge maximum values                                   $mergeMaximumValues
     merge minimum values                                   $mergeMinimumValues
+    merge two instances                                    $mergeMinimumValuesForInt32
     """
 
   implicit val formats = DefaultFormats
 
   val StringT: JObject = ("type" -> "string")
   val IntegerT: JObject = ("type" -> "integer")
-  val j: JObject = ("maximum" -> 10)
+  val jObjectWithInt16: JObject = ("properties", ("test_key", IntegerT ~ ("maximum", JInt(3)) ~ ("minimum", JInt(-2))))
+  val jObjectWithInt32: JObject = ("properties", ("test_key", IntegerT ~ ("maximum", JInt(3)) ~ ("minimum", JInt(-34000))))
 
   def maintainTypesInArray = {
     val merged = mergeJsonSchemas(List(StringT, StringT, StringT, IntegerT, StringT))
@@ -26,14 +28,18 @@ class MergeSpecification extends Specification with ValidationMatchers  { def is
   }
 
   def mergeMaximumValues = {
-    val jsonList: List[JObject] = List(("maximum" -> 2), ("maximum" -> 5), ("maximum" -> 3))
-    val merged = mergeJsonSchemas(jsonList)
-    (merged \ "maximum").extract[BigInt] must beEqualTo(5)
+    val merged = mergeJsonSchemas(List(jObjectWithInt16))
+    (merged\ "properties" \ "test_key" \ "maximum").extract[BigInt] must beEqualTo(32767)
   }
 
   def mergeMinimumValues = {
-    val jsonList: List[JObject] = List(("minimum" -> -2), ("minimum" -> -1000), ("minimum" -> 5))
-    val merged = mergeJsonSchemas(jsonList)
-    (merged \ "minimum").extract[BigInt] must beEqualTo(-1000)
+    val merged = mergeJsonSchemas(List(jObjectWithInt16))
+    (merged\ "properties" \ "test_key" \ "minimum").extract[BigInt] must beEqualTo(-32768)
   }
+
+  def mergeMinimumValuesForInt32 = {
+    val merged = mergeJsonSchemas(List(jObjectWithInt16, jObjectWithInt32))
+    (merged \ "properties" \ "test_key" \ "minimum").extract[BigInt] must beEqualTo(-2147483648)
+  }
+
 }

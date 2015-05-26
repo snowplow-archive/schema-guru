@@ -27,7 +27,8 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz._
 
-import json.JValueOrdering
+
+import json.SchemaHelpers.reduceIntegerFieldRange
 
 /**
  * Takes a list of JsonSchemas and merges them together into
@@ -103,7 +104,7 @@ object JsonSchemaMerger {
    * Reduces array to single value
    *
    * i.e. "type" : ["string"] -> "type" : "string"
-   *      "maximum" : [0, 10] -> "type" : 10
+   *      "maximum" : [0, 10] -> "maximum" : 10
    *
    * @param jsonSchema The Schema we now want to reduce
    * @return the reduced JsonSchema ready for publishing
@@ -116,17 +117,7 @@ object JsonSchemaMerger {
           case list                   => JArray(list)
         })
       }
-      case ("maximum", JArray(maxs)) => {
-        ("maximum", maxs match {
-          case list if list.size == 1 => list(0)
-          case list                   => list.max(JValueOrdering.toScalaOrdering)
-        })
-      }
-      case ("minimum", JArray(mins)) => {
-        ("minimum", mins match {
-          case list if list.size == 1 => list(0)
-          case list                   => list.min(JValueOrdering.toScalaOrdering)
-        })
-      }
+      case ("properties", properties) =>
+        ("properties", properties map(reduceIntegerFieldRange))
     }
 }
