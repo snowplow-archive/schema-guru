@@ -1,3 +1,7 @@
+# Schema Guru
+
+[! [Build Status] [travis-image] ] [travis]
+
 ## Quickstart
 
 Assuming git, Vagrant and VirtualBox are installed:
@@ -45,3 +49,7 @@ zip -j "package/snowplow_schema_guru_${VERSION}_linux.zip" target/scala-2.10/sch
 ```
 
 Then upload `package/snowplow_schema_guru_${VERSION}_linux.zip` to Snowplow's open source Bintray.
+
+
+[travis]: https://travis-ci.org/snowplow/schema-guru
+[travis-image]: https://travis-ci.org/snowplow/schema-guru.png?branch=master
