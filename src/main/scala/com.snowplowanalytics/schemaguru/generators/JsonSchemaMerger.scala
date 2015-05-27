@@ -24,7 +24,8 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz._
 
 
-import json.SchemaHelpers.reduceIntegerFieldRange
+import json.SchemaHelpers._
+import json.JValueOrdering
 
 /**
  * Takes a list of JsonSchemas and merges them together into
@@ -109,10 +110,12 @@ object JsonSchemaMerger {
     jsonSchema transformField {
       case ("type", JArray(list)) =>
         ("type", list match {
-          case list if list.size == 1 => list(0)
-          case list                   => JArray(list)
+          case list if list.size == 1       => list(0)
+          case list if isMergedNumber(list) => "number"
+          case list                         => JArray(list)
         })
       case ("properties", properties) =>
-        ("properties", properties map(reduceIntegerFieldRange))
+        ("properties", properties map(reduceIntegerFieldRange)
+                                  map(eliminateMinMaxForNumber))
     }
 }

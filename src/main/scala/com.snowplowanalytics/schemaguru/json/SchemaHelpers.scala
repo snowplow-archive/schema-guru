@@ -65,4 +65,33 @@ object SchemaHelpers {
       case _ => original
     }
   }
+
+  private case object NumberField
+
+  /**
+   * Eliminates minimum and maximum properties possible left by merge with integer
+   */
+  def eliminateMinMaxForNumber(original: JValue) = {
+    val numberField: List[NumberField.type] = for { JObject(field) <- original
+                                                    JField("type", JString("number")) <- field
+                                                    JField("minimum", JArray(_)) <- field
+                                                    JField("maximum", JArray(_)) <- field
+    } yield NumberField
+
+    numberField match {
+      case head :: Nil => original removeField { case JField("maximum", _) => true
+                                                 case JField("minimum", _) => true
+                                                 case _ => false }
+      case _ => original
+    }
+  }
+
+  /**
+   * Check if field type contains both integer and number
+   *
+   * @param jArray value of type
+   */
+  def isMergedNumber(jArray: List[JValue]) =
+    jArray.sorted(JValueOrdering.toScalaOrdering) == List(JString("integer"), JString("number"))
+
 }
