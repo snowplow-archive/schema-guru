@@ -2,6 +2,8 @@
 
 [! [Build Status] [travis-image] ] [travis]  [ ![License] [license-image] ] [license] [ ![Release] [release-image] ] [releases]
 
+Schema guru is tool (currently only CLI) allowing you to derive [JSON Schema] [json-schema] from set of available JSONs.
+
 ## Quickstart
 
 Assuming git, Vagrant and VirtualBox are installed:
@@ -21,6 +23,12 @@ guest$ sbt
 schema-guru > run --dir {{jsons_directory}}
 ```
 
+Also you can specify output file for your schema
+
+```bash
+schema-guru > run --dir {{jsons_directory}} --output /Users/guru/new_schema.json
+```
+
 ### Current Assumptions
 
 * All JSONs in the directory are assumed to be of the same event type and will be merged together.
@@ -32,10 +40,13 @@ schema-guru > run --dir {{jsons_directory}}
 * Can take a directory as an argument and will print out the resulting JsonSchema:
   - Processes each JSON sequentially
   - Merges all results into one master JsonSchema
+* Recognize several string formats
+  - uuid
+  - date-time (accoridng to ISO-8601:2004)
+  - IPv4 and IPv6 addresses
+* Detect integer ranges according to Int16, Int32, Int64
 
 ### What it does not do yet...
-
-SchemaGuru only looks at the type of the field in the JSON, currently it does not bother trying to decipher what sort of field it could be.  For example detecting date-times in Strings or determining any hard limits on a particular field.
 
 SchemaGuru also produces a very strict Schema in that there are zero additionalProperties allowed currently.
 
@@ -57,5 +68,7 @@ Then upload `package/snowplow_schema_guru_${VERSION}_linux.zip` to Snowplow's op
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
-[release-image]: http://img.shields.io/badge/release--0.1.0M-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-unreleased-blue.svg?style=flat
 [releases]: https://github.com/snowplow/scala-forex/releases
+
+[json-schema]: http://json-schema.org/
