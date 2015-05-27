@@ -17,10 +17,6 @@ package generators
 import scalaz._
 import Scalaz._
 
-// Jackson
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.core.JsonParseException
-
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
@@ -111,12 +107,11 @@ object JsonSchemaMerger {
    */
   def reduceMergedSchema(jsonSchema: JValue): JValue =
     jsonSchema transformField {
-      case ("type", JArray(list))  => {
+      case ("type", JArray(list)) =>
         ("type", list match {
           case list if list.size == 1 => list(0)
           case list                   => JArray(list)
         })
-      }
       case ("properties", properties) =>
         ("properties", properties map(reduceIntegerFieldRange))
     }

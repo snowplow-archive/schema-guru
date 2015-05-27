@@ -21,7 +21,7 @@ object SchemaHelpers {
   )
 
   private def guessRange(min: BigInt, max: BigInt) =
-    ranges.find(r => r.minimum <= min && r.maximum >= max)
+    ranges.find(r => r.minimum <= min && r.maximum >= max).get
 
   /**
    * Holds all information about merged JSON Schema Int
@@ -37,18 +37,18 @@ object SchemaHelpers {
     /**
      * Minimum bound according to negativeness and size of byte
      */
-    val minimumBound: Option[BigInt] = range.map(_.minimum)
+    val minimumBound: BigInt = range.minimum
 
     /**
      * Maximum bound according to negativeness and size of byte
      */
-    val maximumBound: Option[BigInt] = range.map(_.maximum)
+    val maximumBound: BigInt = range.maximum
   }
 
   /**
    * Tries to extract all unreduced integer fields and modify minimum/maximum values
    *
-   * @param original is unreduced JSON Schema with integer fields
+   * @param original is unreduced JSON Schema with integer field
    *                 and minimum/maximum fields as JArray in it
    * @return JSON with reduced minimum/maximum properties
    */
@@ -60,9 +60,8 @@ object SchemaHelpers {
     } yield IntegerFieldReducer(minimum, maximum)
 
     integerField match {
-      case head :: Nil if (head.maximumBound.isDefined && head.minimumBound.isDefined) =>
-        original merge JObject("minimum" -> JInt(head.minimumBound.get),
-                               "maximum" -> JInt(head.maximumBound.get))
+      case head :: Nil => original merge JObject("minimum" -> JInt(head.minimumBound),
+                                                 "maximum" -> JInt(head.maximumBound))
       case _ => original
     }
   }
