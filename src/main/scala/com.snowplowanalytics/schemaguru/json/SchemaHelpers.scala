@@ -11,6 +11,12 @@ object SchemaHelpers {
   implicit def extractIntsFromJValues(jValues: List[JValue]): List[BigInt] =
     for (jValue <- jValues; JInt(int) <- jValue) yield int
 
+  implicit def extractNumericFromJValues(jValues: List[JValue]): List[Double] = {
+    val doubles = for (jValue <- jValues; JDouble(double) <- jValue) yield double
+    val ints = for (jValue <- jValues; JInt(int) <- jValue) yield int.toDouble
+    doubles ++ ints
+  }
+
   private case class Range(minimum: BigInt, maximum: BigInt)
 
   // List of Int ranges sorted by size
@@ -66,21 +72,23 @@ object SchemaHelpers {
     }
   }
 
-  private case object NumberField
+  private case class NumberField(minimums: List[Double]) {
+    def isNegative = minimums.min < 0
+  }
 
   /**
    * Eliminates minimum and maximum properties possible left by merge with integer
    */
   def eliminateMinMaxForNumber(original: JValue) = {
-    val numberField: List[NumberField.type] = for { JObject(field) <- original
-                                                    JField("type", JString("number")) <- field
-                                                    JField("minimum", JArray(_)) <- field
-                                                    JField("maximum", JArray(_)) <- field
-    } yield NumberField
+    val numberField: List[NumberField] = for { JObject(field) <- original
+                                               JField("type", JString("number")) <- field
+                                               JField("minimum", JArray(minimum)) <- field
+    } yield NumberField(minimum)
 
     numberField match {
-      case head :: Nil => original removeField { case JField("maximum", _) => true
-                                                 case JField("minimum", _) => true
+      case head :: Nil => original.merge(JObject("minimum" -> JInt(0)))  // it may be removed further
+                                  .removeField { case JField("minimum", _) => head.isNegative
+                                                 case JField("maximum", _) => true
                                                  case _ => false }
       case _ => original
     }

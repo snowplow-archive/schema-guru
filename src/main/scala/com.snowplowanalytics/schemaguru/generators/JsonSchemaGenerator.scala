@@ -92,8 +92,8 @@ object JsonSchemaGenerator {
           case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
           case (k, JString(v))  => List((k, Enrichment.enrichString(v)))
           case (k, JInt(v))     => List((k, Enrichment.enrichInteger(v)))
-          case (k, JDecimal(_)) => List((k, JsonSchemaType.DecimalT))
-          case (k, JDouble(_))  => List((k, JsonSchemaType.DoubleT))
+          case (k, JDecimal(v)) => List((k, Enrichment.enrichDecimal(v)))
+          case (k, JDouble(v))  => List((k, Enrichment.enrichDouble(v)))
           case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
           case (k, JNull)       => List((k, JsonSchemaType.NullT))
           case (k, JNothing)    => List((k, JsonSchemaType.NothingT))
@@ -253,6 +253,12 @@ object JsonSchemaGenerator {
      */
     def enrichInteger(value: BigInt) =
       JsonSchemaType.IntegerT ~ ("minimum", value) ~ ("maximum", value)
+
+    def enrichDecimal(value: BigDecimal) =
+      JsonSchemaType.DecimalT ~ ("minimum", value)
+
+    def enrichDouble(value: Double) =
+      JsonSchemaType.DoubleT ~ ("minimum", value)
   }
 }
 
