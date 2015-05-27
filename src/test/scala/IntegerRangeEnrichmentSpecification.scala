@@ -28,16 +28,16 @@ class IntegerRangeEnrichmentSpecification extends Specification { def is = s2"""
   val schemaWithPositiveInt16 = parse("""{"type": "integer", "minimum": [21, 100, 0, 31], "maximum": [30000, 16000, 100]}""")
 
   def guessZero =
-    SchemaHelpers.IntegerFieldReducer(List(0), List(0)).minimumBound must beSome(0)
+    SchemaHelpers.IntegerFieldReducer(List(0), List(0)).minimumBound must beEqualTo(0)
 
   def guessInt16 =
-    SchemaHelpers.IntegerFieldReducer(List(-1), List(31000)).minimumBound must beSome(int16Range.minimum)
+    SchemaHelpers.IntegerFieldReducer(List(-1), List(31000)).minimumBound must beEqualTo(int16Range.minimum)
 
   def guessInt32Negative =
-    SchemaHelpers.IntegerFieldReducer(List(-34000), List(3000)).minimumBound must beSome(int32Range.minimum)
+    SchemaHelpers.IntegerFieldReducer(List(-34000), List(3000)).minimumBound must beEqualTo(int32Range.minimum)
 
   def guessInt64 =
-    SchemaHelpers.IntegerFieldReducer(List(-34000), List(9223372036854775806L)).minimumBound must beSome(int64Range.minimum)
+    SchemaHelpers.IntegerFieldReducer(List(-34000), List(9223372036854775806L)).minimumBound must beEqualTo(int64Range.minimum)
 
   def checkInt16Range =
     int16Range must beEqualTo(Range(Short.MinValue.toInt, Short.MaxValue.toInt))
