@@ -1,6 +1,6 @@
 # Schema Guru
 
-[! [Build Status] [travis-image] ] [travis]  [ ![License] [license-image] ] [license] [ ![Release] [release-image] ] [releases]
+[ ![Build Status] [travis-image] ] [travis]  [ ![License] [license-image] ] [license] [ ![Release] [release-image] ] [releases]
 
 Schema guru is tool (currently only CLI) allowing you to derive [JSON Schema] [json-schema] from set of available JSONs.
 
@@ -69,6 +69,6 @@ Then upload `package/snowplow_schema_guru_${VERSION}_linux.zip` to Snowplow's op
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
 [release-image]: http://img.shields.io/badge/release-unreleased-blue.svg?style=flat
-[releases]: https://github.com/snowplow/scala-forex/releases
+[releases]: https://github.com/snowplow/schema-guru/releases
 
 [json-schema]: http://json-schema.org/
