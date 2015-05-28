@@ -198,7 +198,7 @@ object JsonSchemaGenerator {
      */
     def guessFormat(value: String, suggestions: List[String => Option[String]]): Option[String] = {
       suggestions match {
-        case Nil => None
+        case Nil => Some("none")    // this format should be eleminated in result schema
         case suggestion :: tail => suggestion(value) match {
           case Some(format) => Some(format)
           case None => guessFormat(value, tail)

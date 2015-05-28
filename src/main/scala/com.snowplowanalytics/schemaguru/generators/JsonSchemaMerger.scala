@@ -88,10 +88,13 @@ object JsonSchemaMerger {
    */
   def formatSchemaForMerge(jsonSchema: JValue): JValue =
     jsonSchema transformField {
-      case ("type", JObject(v)) => ("type", JObject(v))
-      case ("type", v)          => ("type", JArray(List(v)))
-      case ("maximum", m)       => ("maximum", JArray(List(m)))
-      case ("minimum", m)       => ("minimum", JArray(List(m)))
+      case ("type", JObject(v))   => ("type", JObject(v))
+      case ("type", v)            => ("type", JArray(List(v)))
+
+      case ("maximum", m)         => ("maximum", JArray(List(m)))
+      case ("minimum", m)         => ("minimum", JArray(List(m)))
+
+      case ("format", JString(f)) => ("format", JArray(List(f)))
     }
 
   /**
@@ -114,6 +117,7 @@ object JsonSchemaMerger {
         })
       case ("properties", properties) =>
         ("properties", properties map(reduceIntegerFieldRange)
-                                  map(reduceNumberFieldRange))
+                                  map(reduceNumberFieldRange)
+                                  map(reduceStringFieldFormat))
     }
 }

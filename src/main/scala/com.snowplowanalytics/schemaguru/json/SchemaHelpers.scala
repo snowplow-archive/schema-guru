@@ -17,6 +17,9 @@ object SchemaHelpers {
     doubles ++ ints
   }
 
+  implicit def extractStringsFromJValues(jValues: List[JValue]): List[String] =
+    for (jValue <- jValues; JString(str) <- jValue) yield str
+
   private case class Range(minimum: BigInt, maximum: BigInt)
 
   // List of Int ranges sorted by size
@@ -111,4 +114,31 @@ object SchemaHelpers {
   def isMergedNumber(jArray: List[JValue]) =
     jArray.sorted(JValueOrdering.toScalaOrdering) == List(JString("integer"), JString("number"))
 
+  private case class StringFieldReducer(formats: List[String]) {
+    def getFormat: String = {
+      val formatSet = formats.toSet.toList
+      if (formatSet.size == 1) formatSet.head
+      else "none"
+    }
+  }
+
+  /**
+   * Eliminates format property if more than one format presented
+   *
+   * @param original is unreduced JSON Schema with string field
+   *                 and format property as JArray in it
+   */
+  def reduceStringFieldFormat(original: JValue) = {
+    val stringField: List[StringFieldReducer] = for { JObject(field) <- original
+                                                      JField("type", JString("string")) <- field
+                                                      JField("format", JArray(formats)) <- field
+    } yield StringFieldReducer(formats)
+
+    stringField match {
+      case head :: Nil => original.merge(JObject("format" -> JString(head.getFormat)))  // it may be removed further
+                                  .removeField { case JField("format", JString("none")) => true
+                                                 case _ => false }
+      case _ => original
+    }
+  }
 }
