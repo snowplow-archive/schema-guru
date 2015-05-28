@@ -25,7 +25,6 @@ import com.fasterxml.jackson.core.JsonParseException
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
-import org.json4s.scalaz.JsonScalaz._
 
 /**
  * Takes a JSON and converts it into a JsonSchema.

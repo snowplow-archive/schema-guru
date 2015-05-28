@@ -43,7 +43,6 @@ object SchemaGuruBuild extends Build {
         Libraries.algebird,
         Libraries.json4sJackson,
         Libraries.json4sScalaz,
-        Libraries.igluClient,
         // Scala (test only)
         Libraries.specs2,
         Libraries.scalazSpecs2,
