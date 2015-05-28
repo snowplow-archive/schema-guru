@@ -30,7 +30,7 @@ object SchemaHelpers {
     ranges.find(r => r.minimum <= min && r.maximum >= max).get
 
   /**
-   * Holds all information about merged JSON Schema Int
+   * Holds all information about merged JSON Schema Integer
    *
    * @param minimums list of all encountered maximum values
    * @param maximums list of all encountered minimum values
@@ -72,18 +72,27 @@ object SchemaHelpers {
     }
   }
 
-  private case class NumberField(minimums: List[Double]) {
+  /**
+   * Holds information about merged JSON Schema Number
+   *
+   * @param minimums list of all encountered maximum values
+   */
+  private case class NumberFieldReducer(minimums: List[Double]) {
     def isNegative = minimums.min < 0
   }
 
   /**
-   * Eliminates minimum and maximum properties possible left by merge with integer
+   * Eliminates maximum property possible left by merge with integer
+   * and also minimum if number could be negative (otherwise set it to 0)
+   *
+   * @param original is unreduced JSON Schema with number field
+   *                 and minimum field as JArray in it
    */
-  def eliminateMinMaxForNumber(original: JValue) = {
-    val numberField: List[NumberField] = for { JObject(field) <- original
+  def reduceNumberFieldRange(original: JValue) = {
+    val numberField: List[NumberFieldReducer] = for { JObject(field) <- original
                                                JField("type", JString("number")) <- field
                                                JField("minimum", JArray(minimum)) <- field
-    } yield NumberField(minimum)
+    } yield NumberFieldReducer(minimum)
 
     numberField match {
       case head :: Nil => original.merge(JObject("minimum" -> JInt(0)))  // it may be removed further

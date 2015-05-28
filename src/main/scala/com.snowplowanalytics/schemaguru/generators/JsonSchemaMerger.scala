@@ -101,6 +101,7 @@ object JsonSchemaMerger {
    * Reduces array to single value
    *
    * i.e. "type" : ["string"] -> "type" : "string"
+   *      "type" : ["integer", "number"] -> "type" : "number"
    *      "maximum" : [0, 10] -> "maximum" : 10
    *
    * @param jsonSchema The Schema we now want to reduce
@@ -116,6 +117,6 @@ object JsonSchemaMerger {
         })
       case ("properties", properties) =>
         ("properties", properties map(reduceIntegerFieldRange)
-                                  map(eliminateMinMaxForNumber))
+                                  map(reduceNumberFieldRange))
     }
 }
