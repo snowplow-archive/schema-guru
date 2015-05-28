@@ -38,10 +38,7 @@ import org.json4s.scalaz.JsonScalaz._
  */
 object JsonSchemaGenerator {
 
-  // The current directory which we are pulling resources from
-  private val BaseSchemaFile = "//vagrant//schema-guru//src//main//resources//base-jsonschema.json"
-
-  /** 
+  /**
    * Object to contain different
    * types of Json Objects
    */
@@ -135,32 +132,6 @@ object JsonSchemaGenerator {
           case list if list.size == 1 => list(0) 
           case list                   => JArray(list)
         }
-      }
-    }
-
-  /**
-   * Returns our self-describing schema file.
-   * This is just a barebones layout for how it 
-   * should be structured.
-   *
-   * @param path The full path to the file we want
-   *        to use as the base
-   * @return a validated JValue containing the contents
-   *         of the file we specified
-   */
-  def getBaseSchemaFile(path: String = BaseSchemaFile): Validation[String, JValue] =
-    try {
-      val file = scala.io.Source.fromFile(path)
-      val content = file.mkString
-      parse(content).success
-    } catch {
-      case e: JsonParseException => {
-        val exception = e.getMessage
-        s"File [$path] contents failed to parse into JSON: [$exception]".failure
-      }
-      case e: Exception => {
-        val exception = e.getMessage
-        s"File [$path] fetching and parsing failed: [$exception]".failure
       }
     }
 
