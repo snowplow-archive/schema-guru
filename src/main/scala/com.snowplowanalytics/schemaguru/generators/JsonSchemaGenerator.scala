@@ -191,16 +191,17 @@ object JsonSchemaGenerator {
 
     /**
      * Tries to guess format of the string
+     * If nothing match return "none" format which must be reduced in further transformations
      *
      * @param value is a string we need to recognize
      * @param suggestions list of functions can recognize format
      * @return some format or none if nothing suites
      */
-    def guessFormat(value: String, suggestions: List[String => Option[String]]): Option[String] = {
+    def guessFormat(value: String, suggestions: List[String => Option[String]]): String = {
       suggestions match {
-        case Nil => Some("none")    // this format should be eleminated in result schema
+        case Nil => "none"
         case suggestion :: tail => suggestion(value) match {
-          case Some(format) => Some(format)
+          case Some(format) => format
           case None => guessFormat(value, tail)
         }
       }
@@ -211,12 +212,8 @@ object JsonSchemaGenerator {
      *
      * @return JsonSchemaType with recognized properties
      */
-    def enrichString(value: String) = {
-      guessFormat(value, formatSuggestions) match {
-        case Some(format) => JsonSchemaType.StringT ~ ("format", format)
-        case None         => JsonSchemaType.StringT
-      }
-    }
+    def enrichString(value: String) =
+      JsonSchemaType.StringT ~ ("format", guessFormat(value, formatSuggestions))
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce
