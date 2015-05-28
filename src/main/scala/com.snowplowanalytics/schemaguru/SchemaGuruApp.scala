@@ -58,13 +58,21 @@ object SchemaGuruApp extends App {
     (c, _) => { SchemaGuru.getJsonsFromFolder(c) }
   }
 
+  val fileArgument = parser.option[Validation[String, JValue]](List("file"), "file", "Single JSON instance to be converted") {
+    (c, _) => { SchemaGuru.getSingleJson(c) }
+  }
+
   val outputFileArgument = parser.option[String]("output", "file", "Output file") { (c, _) => c }
 
   parser.parse(args)
 
-  val jsonList = directoryArgument
-    .value
-    .getOrElse(parser.usage("--dir argument must be provided"))
+  val jsonList: ValidJsonList = directoryArgument.value match {
+    case Some(dir)    => dir
+    case None         => fileArgument.value match {
+      case Some(file) => List(file)
+      case None       => parser.usage("either --dir or --file argument must be provided")
+    }
+  }
 
   jsonList match {
     case Nil       => parser.usage("Directory does not contain any JSON files.")
@@ -151,4 +159,26 @@ object SchemaGuru {
     }
     proccessed.toList
   }
+
+  /**
+   * Returns a validated JSON from the specified path
+   *
+   * @param filePath path to JSON
+   * @return a validation either be correct JValue or error as String
+   */
+  def getSingleJson(filePath: String): Validation[String, JValue] = {
+      try {
+        val content = scala.io.Source.fromFile(filePath).mkString
+        parse(content).success
+      } catch {
+        case e: JsonParseException => {
+          val exception = e.getMessage
+          s"File [$filePath] contents failed to parse into JSON: [$exception]".failure
+        }
+        case e: Exception => {
+          val exception = e.getMessage
+          s"File [$filePath] fetching and parsing failed: [$exception]".failure
+        }
+      }
+    }
 }
