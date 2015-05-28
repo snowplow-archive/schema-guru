@@ -15,6 +15,8 @@ class MergeSpecification extends Specification { def is = s2"""
     merge integer with number must result in number        $mergeIntegerWithNumber
     merge two distinct string formats                      $mergeDistinctFormats
     merge strings with and without format                  $mergeStringWithFormatAndWithout
+    merge two different types produce product              $mergeTwoDifferentTypes
+    reduce properties for product types                    $reducePropertiesForProductType
     """
 
   implicit val formats = DefaultFormats
@@ -63,5 +65,16 @@ class MergeSpecification extends Specification { def is = s2"""
   def mergeStringWithFormatAndWithout = {
     val merged = mergeJsonSchemas(List(jObjectWithoutFormat, jObjectWithDateTime))
     (merged \ "properties" \ "test_key" \ "format").extract[Option[String]] must beNone
+  }
+
+  def mergeTwoDifferentTypes = {
+    val merged = mergeJsonSchemas(List(jObjectWithDateTime, jObjectWithInt16))
+    (merged \ "properties" \ "test_key" \ "type").extract[List[String]].sorted must beEqualTo(List("integer", "string"))
+  }
+
+  def reducePropertiesForProductType = {
+    val merged = mergeJsonSchemas(List(jObjectWithDateTime, jObjectWithInt16))
+    // unreduced property would remain list
+    (merged \ "properties" \ "test_key" \ "format").extract[String] mustEqual("date-time")
   }
 }
