@@ -1,4 +1,3 @@
-import org.specs2.scalaz.ValidationMatchers
 import org.specs2.Specification
 import org.json4s._
 import org.json4s.JsonAST.JObject
@@ -7,13 +6,15 @@ import org.json4s.JsonDSL._
 import com.snowplowanalytics.schemaguru.generators.JsonSchemaMerger.mergeJsonSchemas
 
 
-class MergeSpecification extends Specification with ValidationMatchers  { def is = s2"""
+class MergeSpecification extends Specification { def is = s2"""
   Check integer merge
     maintain all types in array                            $maintainTypesInArray
     merge maximum values                                   $mergeMaximumValues
     merge minimum values                                   $mergeMinimumValues
     merge two instances                                    $mergeMinimumValuesForInt32
     merge integer with number must result in number        $mergeIntegerWithNumber
+    merge two distinct string formats                      $mergeDistinctFormats
+    merge strings with and without format                  $mergeStringWithFormatAndWithout
     """
 
   implicit val formats = DefaultFormats
@@ -24,6 +25,10 @@ class MergeSpecification extends Specification with ValidationMatchers  { def is
   val jObjectWithInt16: JObject = ("properties", ("test_key", IntegerT ~ ("maximum", JInt(3)) ~ ("minimum", JInt(-2))))
   val jObjectWithInt32: JObject = ("properties", ("test_key", IntegerT ~ ("maximum", JInt(3)) ~ ("minimum", JInt(-34000))))
   val jObjectWithNumber: JObject = ("properties", ("test_key", DecimalT ~ ("maximum", JDecimal(3.3)) ~ ("minimum", JInt(-34000))))
+
+  val jObjectWithUuid: JObject = ("properties", ("test_key", StringT ~ ("format", JString("uuid"))))
+  val jObjectWithDateTime: JObject = ("properties", ("test_key", StringT ~ ("format", JString("date-time"))))
+  val jObjectWithoutFormat: JObject = ("properties", ("test_key", StringT ~ ("format", JString("none"))))
 
   def maintainTypesInArray = {
     val merged = mergeJsonSchemas(List(StringT, StringT, StringT, IntegerT, StringT))
@@ -50,4 +55,13 @@ class MergeSpecification extends Specification with ValidationMatchers  { def is
     (merged \ "properties" \ "test_key" \ "type").extract[String] must beEqualTo("number")
   }
 
+  def mergeDistinctFormats = {
+    val merged = mergeJsonSchemas(List(jObjectWithUuid, jObjectWithDateTime))
+    (merged \ "properties" \ "test_key" \ "format").extract[Option[String]] must beNone
+  }
+
+  def mergeStringWithFormatAndWithout = {
+    val merged = mergeJsonSchemas(List(jObjectWithoutFormat, jObjectWithDateTime))
+    (merged \ "properties" \ "test_key" \ "format").extract[Option[String]] must beNone
+  }
 }

@@ -4,13 +4,12 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 import org.scalacheck._
-import org.specs2.scalaz.ValidationMatchers
 import org.specs2.{Specification, ScalaCheck}
 
 import com.snowplowanalytics.schemaguru.generators.JsonSchemaGenerator.jsonToSchema
 
 
-class SelfValidSpecification extends Specification with ScalaCheck with ValidationMatchers with JsonGen { def is = s2"""
+class SelfValidSpecification extends Specification with ScalaCheck with JsonGen { def is = s2"""
   Derive schema from random generated JSON and validate against itself
     validate random JSON against derived schema            $validateJsonAgainstDerivedSchema
     validate any JSON against empty schema                 $validateJsonAgainstEmptySchema
