@@ -65,7 +65,7 @@ object JsonSchemaGenerator {
   def jsonToSchema(json: JValue): JValue =
     json match {
       case JObject(x) => ("type", "object") ~ ("properties", jObjectListProcessor(x)) ~ ("additionalProperties", false)
-      case JArray(x)  => ("type", "array") ~ ("items", jArrayListProcessor(x))
+      case JArray(x)  => ("type", "array")
       case _          => null
     }
 
