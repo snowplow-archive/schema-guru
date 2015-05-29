@@ -86,6 +86,7 @@ object JsonSchemaMerger {
    *        preparing for a merge
    * @return the formatted JsonSchema ready for merge
    */
+  // TODO: we can significantly decrease memory consumption by filtering data on this step
   def formatSchemaForMerge(jsonSchema: JValue): JValue =
     jsonSchema transformField {
       case ("type", JObject(v))   => ("type", JObject(v))

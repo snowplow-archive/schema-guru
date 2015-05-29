@@ -158,6 +158,7 @@ object JsonSchemaGenerator {
   object Enrichment {
     import java.util.UUID
     import org.apache.commons.validator.routines.InetAddressValidator
+    import org.apache.commons.validator.routines.UrlValidator
     import org.joda.time.DateTime.parse
 
     def suggestTimeFormat(string: String): Option[String] = {
@@ -180,14 +181,20 @@ object JsonSchemaGenerator {
       }
     }
 
-    def suggestIpFormat(string: String): Option[String]  = {
+    def suggestIpFormat(string: String): Option[String] = {
       val validator = new InetAddressValidator()
       if (validator.isValidInet4Address(string)) Some("ipv4")
       else if (validator.isValidInet6Address(string)) Some("ipv6")
       else None
     }
 
-    private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _, suggestIpFormat _)
+    def suggestUrlFormat(string: String): Option[String] = {
+      val urlValidator = new UrlValidator()
+      if (urlValidator.isValid(string)) Some("uri")
+      else None
+    }
+
+    private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _, suggestIpFormat _, suggestUrlFormat _)
 
     /**
      * Tries to guess format of the string
