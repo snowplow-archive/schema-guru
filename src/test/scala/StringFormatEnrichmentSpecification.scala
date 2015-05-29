@@ -12,16 +12,19 @@ class StringFormatEnrichmentSpecification extends Specification { def is = s2"""
     skip invalid date as number               $doNotRecognizeIncorrectDateAsNum
     add date-time format to string            $enrichFieldWithDate
     add ipv4 format to string                 $enrichFieldWithIp4
+    add uri format to string                  $enrichFieldWithUri
     """
 
   val correctUuid = "f0e89550-7fda-11e4-bbe8-22000ad9bf74"
   val correctDate = "2010-01-01T12:00:00+01:00"
+  val correctUri = "https://github.com/snowplow/schema-guru"
   val incorrectDate = "2010-13-01T12:00:00+01:00"
   val incorrectDateAsNumString = "23"
   val correctIp = "192.1.1.2"
   val StringT  = JObject(List(("type", JString("string"))))
   val StringWithDateT = JObject(List(("type", JString("string")), ("format", JString("date-time"))))
   val StringWitIp4 = JObject(List(("type", JString("string")), ("format", JString("ipv4"))))
+  val StringWitUri = JObject(List(("type", JString("string")), ("format", JString("uri"))))
 
   def recognizeUuid =
     Enrichment.suggestUuidFormat(correctUuid) must beSome("uuid")
@@ -40,5 +43,8 @@ class StringFormatEnrichmentSpecification extends Specification { def is = s2"""
 
   def enrichFieldWithIp4 =
     Enrichment.enrichString(correctIp) mustEqual StringWitIp4
+
+  def enrichFieldWithUri =
+    Enrichment.enrichString(correctUri) mustEqual StringWitUri
 }
 
