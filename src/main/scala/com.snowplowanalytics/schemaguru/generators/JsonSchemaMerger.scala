@@ -89,14 +89,20 @@ object JsonSchemaMerger {
   // TODO: we can significantly decrease memory consumption by filtering data on this step
   def formatSchemaForMerge(jsonSchema: JValue): JValue =
     jsonSchema transformField {
-      case ("type", JObject(v))   => ("type", JObject(v))
-      case ("type", v)            => ("type", JArray(List(v)))
+      case ("type", JObject(v))     => ("type", JObject(v))
+      case ("type", JString(v))     => ("type", JArray(List(v)))
 
-      case ("maximum", m)         => ("maximum", JArray(List(m)))
-      case ("minimum", m)         => ("minimum", JArray(List(m)))
+      case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
+      case ("minimum", JInt(m))     => ("minimum", JArray(List(m)))
 
-      case ("format", JString(f)) => ("format", JArray(List(f)))
+      case ("format", JString(f))   => ("format", JArray(List(f)))
+
+      case ("items", JArray(items)) => ("items", mergeJsonSchemas(items))
     }
+
+  def reduceArray(items: List[JObject]): JValue = {
+    formatSchemaForMerge(items)
+  }
 
   /**
    * Reduces array to single value

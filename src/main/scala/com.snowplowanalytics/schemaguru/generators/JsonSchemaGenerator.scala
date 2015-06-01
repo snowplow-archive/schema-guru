@@ -65,7 +65,7 @@ object JsonSchemaGenerator {
   def jsonToSchema(json: JValue): JValue =
     json match {
       case JObject(x) => ("type", "object") ~ ("properties", jObjectListProcessor(x)) ~ ("additionalProperties", false)
-      case JArray(x)  => ("type", "array")
+      case JArray(x)  => ("type", "array") ~ ("items", jArrayListProcessor(x))
       case _          => null
     }
 
@@ -116,10 +116,10 @@ object JsonSchemaGenerator {
         val jType = x match {
           case JObject(v)  => jsonToSchema(JObject(v))
           case JArray(v)   => jsonToSchema(JArray(v))
-          case JString(_)  => JsonSchemaType.StringT
-          case JInt(_)     => JsonSchemaType.IntegerT
-          case JDecimal(_) => JsonSchemaType.DecimalT
-          case JDouble(_)  => JsonSchemaType.DoubleT
+          case JString(v)  => Enrichment.enrichString(v)
+          case JInt(v)     => Enrichment.enrichInteger(v)
+          case JDecimal(v) => Enrichment.enrichDecimal(v)
+          case JDouble(v)  => Enrichment.enrichDouble(v)
           case JBool(_)    => JsonSchemaType.BooleanT
           case JNull       => JsonSchemaType.NullT
           case JNothing    => JsonSchemaType.NothingT

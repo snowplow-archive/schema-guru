@@ -53,13 +53,13 @@ object SchemaHelpers {
   /**
    * Holds all information about merged JSON Schema Integer
    *
-   * @param minimums list of all encountered maximum values
-   * @param maximums list of all encountered minimum values
+   * @param minimum list of all encountered maximum values
+   * @param maximum list of all encountered minimum values
    */
-  case class IntegerFieldReducer(minimums: List[BigInt], maximums: List[BigInt]) {
-    private val minimum = minimums.min
-    private val maximum = maximums.max
-    private val range = guessRange(minimum, maximum)
+  case class IntegerFieldReducer(minimum: List[BigInt], maximum: List[BigInt]) {
+    private val reducedMinimum = minimum.min
+    private val reducedMaximum = maximum.max
+    private val range = guessRange(reducedMinimum, reducedMaximum)
 
     /**
      * Minimum bound according to negativeness and size of byte
@@ -80,7 +80,7 @@ object SchemaHelpers {
    *               JObject with type integer, and minimum/maximum arrays
    * @return reducer if it is really integer field
    */
-  private def extractIntegerField(jField: JValue): Option[IntegerFieldReducer] =  {
+  def extractIntegerField(jField: JValue): Option[IntegerFieldReducer] = {
     val list: List[IntegerFieldReducer] = for {
       JObject(field) <- jField
       JField("minimum", JArray(minimum)) <- field
@@ -121,7 +121,7 @@ object SchemaHelpers {
    * Unreduced state imply it has minimum field as array
    *
    * @param jField any JValue, but for extraction it need to be
-   *               JObject with type number, and minimum array
+   *               field with JObject as value with type number, and minimum array
    * @return reducer if it is really number field
    */
   private def extractNumberField(jField: JValue): Option[NumberFieldReducer] =  {
@@ -181,7 +181,7 @@ object SchemaHelpers {
    *               JObject with type string, and format array
    * @return reducer if it is really string field
    */
-  private def extractStringField(jField: JValue): Option[StringFieldReducer] =  {
+  private def extractStringField(jField: JValue): Option[StringFieldReducer] = {
     val list: List[StringFieldReducer] = for {
       JObject(field) <- jField
       JField("format", JArray(formats)) <- field
