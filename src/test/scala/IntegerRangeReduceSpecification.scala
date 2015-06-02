@@ -1,10 +1,26 @@
+/*
+ * Copyright (c) 2015 Snowplow Analytics Ltd. All rights reserved.
+ *
+ * This program is licensed to you under the Apache License Version 2.0,
+ * and you may not use this file except in compliance with the Apache License Version 2.0.
+ * You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the Apache License Version 2.0 is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
+ */
+package com.snowplowanalytics.schemaguru
+package json
+
+// json4s
+import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import org.json4s.JsonAST.{JInt, JObject, JString}
+
+// Testing
 import org.specs2.Specification
 
-import com.snowplowanalytics.schemaguru.json.SchemaHelpers
-
-class IntegerRangeEnrichmentSpecification extends Specification { def is = s2"""
+class IntegerRangeReduceSpecification extends Specification with SchemaIntegerHelper { def is = s2"""
   Check integer range
     guess zero as positive                     $guessZero
     guess Int16                                $guessInt16
@@ -15,9 +31,7 @@ class IntegerRangeEnrichmentSpecification extends Specification { def is = s2"""
     check Int64 as Long                        $checkInt64Range
     """
 
-  case class Range(minimum: BigInt, maximum: BigInt)
-
-  val int16Range = Range(-32768, 32767)
+  val int16Range = Range(-32768, 32767)   // SchemaIntegerHelper.Range, not Scala built-in
   val int32Range = Range(-2147483648, 2147483647)
   val int64Range = Range(-9223372036854775808L, 9223372036854775807L)
 
@@ -28,16 +42,16 @@ class IntegerRangeEnrichmentSpecification extends Specification { def is = s2"""
   val schemaWithPositiveInt16 = parse("""{"type": "integer", "minimum": [21, 100, 0, 31], "maximum": [30000, 16000, 100]}""")
 
   def guessZero =
-    SchemaHelpers.IntegerFieldReducer(List(0), List(0)).minimumBound must beEqualTo(0)
+    IntegerFieldReducer(List(0), List(0)).minimumBound must beEqualTo(0)
 
   def guessInt16 =
-    SchemaHelpers.IntegerFieldReducer(List(-1), List(31000)).minimumBound must beEqualTo(int16Range.minimum)
+    IntegerFieldReducer(List(-1), List(31000)).minimumBound must beEqualTo(int16Range.minimum)
 
   def guessInt32Negative =
-    SchemaHelpers.IntegerFieldReducer(List(-34000), List(3000)).minimumBound must beEqualTo(int32Range.minimum)
+    IntegerFieldReducer(List(-34000), List(3000)).minimumBound must beEqualTo(int32Range.minimum)
 
   def guessInt64 =
-    SchemaHelpers.IntegerFieldReducer(List(-34000), List(9223372036854775806L)).minimumBound must beEqualTo(int64Range.minimum)
+    IntegerFieldReducer(List(-34000), List(9223372036854775806L)).minimumBound must beEqualTo(int64Range.minimum)
 
   def checkInt16Range =
     int16Range must beEqualTo(Range(Short.MinValue.toInt, Short.MaxValue.toInt))
@@ -47,9 +61,5 @@ class IntegerRangeEnrichmentSpecification extends Specification { def is = s2"""
 
   def checkInt64Range =
     int64Range must beEqualTo(Range(Long.MinValue, Long.MaxValue))
-
-  def enrichWithInt16Range =
-    SchemaHelpers.reduceIntegerFieldRange(schemaWithPositiveInt16) mustEqual IntegerTWithInt16Range
-
 }
 

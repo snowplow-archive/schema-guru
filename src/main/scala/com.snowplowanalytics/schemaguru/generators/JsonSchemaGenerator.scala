@@ -17,9 +17,16 @@ package generators
 import scalaz._
 import Scalaz._
 
-// Jackson
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.core.JsonParseException
+// Scala
+import scala.annotation.tailrec
+
+// Java
+import java.util.UUID
+import org.apache.commons.validator.routines.{
+  InetAddressValidator,
+  UrlValidator
+}
+import org.joda.time.DateTime
 
 // json4s
 import org.json4s._
@@ -86,10 +93,10 @@ object JsonSchemaGenerator {
         val jSchema: List[(String, JValue)] = x match {
           case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
           case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
-          case (k, JString(v))  => List((k, Enrichment.enrichString(v)))
-          case (k, JInt(v))     => List((k, Enrichment.enrichInteger(v)))
-          case (k, JDecimal(v)) => List((k, Enrichment.enrichDecimal(v)))
-          case (k, JDouble(v))  => List((k, Enrichment.enrichDouble(v)))
+          case (k, JString(v))  => List((k, Annotations.annotateString(v)))
+          case (k, JInt(v))     => List((k, Annotations.annotateString(v)))
+          case (k, JDecimal(v)) => List((k, Annotations.annotateString(v)))
+          case (k, JDouble(v))  => List((k, Annotations.annotateDouble(v)))
           case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
           case (k, JNull)       => List((k, JsonSchemaType.NullT))
           case (k, JNothing)    => List((k, JsonSchemaType.NothingT))
@@ -116,10 +123,10 @@ object JsonSchemaGenerator {
         val jType = x match {
           case JObject(v)  => jsonToSchema(JObject(v))
           case JArray(v)   => jsonToSchema(JArray(v))
-          case JString(v)  => Enrichment.enrichString(v)
-          case JInt(v)     => Enrichment.enrichInteger(v)
-          case JDecimal(v) => Enrichment.enrichDecimal(v)
-          case JDouble(v)  => Enrichment.enrichDouble(v)
+          case JString(v)  => Annotations.annotateString(v)
+          case JInt(v)     => Annotations.annotateString(v)
+          case JDecimal(v) => Annotations.annotateString(v)
+          case JDouble(v)  => Annotations.annotateDouble(v)
           case JBool(_)    => JsonSchemaType.BooleanT
           case JNull       => JsonSchemaType.NullT
           case JNothing    => JsonSchemaType.NothingT
@@ -155,16 +162,11 @@ object JsonSchemaGenerator {
     }
 
 
-  object Enrichment {
-    import java.util.UUID
-    import org.apache.commons.validator.routines.InetAddressValidator
-    import org.apache.commons.validator.routines.UrlValidator
-    import org.joda.time.DateTime.parse
-
+  object Annotations {
     def suggestTimeFormat(string: String): Option[String] = {
       if (string.length > 10) { // TODO: find a better way to exclude truncated ISO 8601:2000 values
         try {
-          parse(string)
+          DateTime.parse(string)
           Some("date-time")
         } catch {
           case e: IllegalArgumentException => None
@@ -183,15 +185,15 @@ object JsonSchemaGenerator {
 
     def suggestIpFormat(string: String): Option[String] = {
       val validator = new InetAddressValidator()
-      if (validator.isValidInet4Address(string)) Some("ipv4")
-      else if (validator.isValidInet6Address(string)) Some("ipv6")
-      else None
+      if (validator.isValidInet4Address(string)) { Some("ipv4") }
+      else if (validator.isValidInet6Address(string)) { Some("ipv6") }
+      else { None }
     }
 
     def suggestUrlFormat(string: String): Option[String] = {
       val urlValidator = new UrlValidator()
-      if (urlValidator.isValid(string)) Some("uri")
-      else None
+      if (urlValidator.isValid(string)) { Some("uri") }
+      else { None }
     }
 
     private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _, suggestIpFormat _, suggestUrlFormat _)
@@ -204,6 +206,7 @@ object JsonSchemaGenerator {
      * @param suggestions list of functions can recognize format
      * @return some format or none if nothing suites
      */
+    @tailrec
     def guessFormat(value: String, suggestions: List[String => Option[String]]): String = {
       suggestions match {
         case Nil => "none"
@@ -219,19 +222,25 @@ object JsonSchemaGenerator {
      *
      * @return JsonSchemaType with recognized properties
      */
-    def enrichString(value: String) =
+    def annotateString(value: String) =
       JsonSchemaType.StringT ~ ("format", guessFormat(value, formatSuggestions))
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce
      */
-    def enrichInteger(value: BigInt) =
+    def annotateString(value: BigInt) =
       JsonSchemaType.IntegerT ~ ("minimum", value) ~ ("maximum", value)
 
-    def enrichDecimal(value: BigDecimal) =
+    /**
+     * Set value itself as minimum. We haven't maximum bounds for numbers
+     */
+    def annotateString(value: BigDecimal) =
       JsonSchemaType.DecimalT ~ ("minimum", value)
 
-    def enrichDouble(value: Double) =
+    /**
+     * Set value itself as minimum. We haven't maximum bounds for numbers
+     */
+    def annotateDouble(value: Double) =
       JsonSchemaType.DoubleT ~ ("minimum", value)
   }
 }

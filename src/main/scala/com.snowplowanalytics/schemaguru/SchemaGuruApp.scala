@@ -17,15 +17,13 @@ import scalaz._
 import Scalaz._
 
 // Scala
-import scala.collection.JavaConversions._
+import scala.io.Source
 
 // Jackson
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.core.JsonParseException
 
 // json4s
 import org.json4s._
-import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
 // Argot
@@ -41,8 +39,6 @@ import generators.{
  * An app to convert JSON events into valid JsonSchemas
  */
 object SchemaGuruApp extends App {
-
-  import SchemaGuru._
 
   val parser = new ArgotParser(
     programName = "generated.ProjectSettings.name",
@@ -67,8 +63,8 @@ object SchemaGuruApp extends App {
   parser.parse(args)
 
   val jsonList: ValidJsonList = directoryArgument.value match {
-    case Some(dir)    => dir
-    case None         => fileArgument.value match {
+    case Some(dir) => dir
+    case None      => fileArgument.value match {
       case Some(file) => List(file)
       case None       => parser.usage("either --dir or --file argument must be provided")
     }
@@ -143,7 +139,7 @@ object SchemaGuru {
       filePath <- new java.io.File(dir).listFiles.filter(_.getName.endsWith("." + ext))
     } yield {
       try {
-        val file = scala.io.Source.fromFile(filePath)
+        val file = Source.fromFile(filePath)
         val content = file.mkString
         parse(content).success
       } catch {
@@ -168,7 +164,7 @@ object SchemaGuru {
    */
   def getSingleJson(filePath: String): Validation[String, JValue] = {
       try {
-        val content = scala.io.Source.fromFile(filePath).mkString
+        val content = Source.fromFile(filePath).mkString
         parse(content).success
       } catch {
         case e: JsonParseException => {

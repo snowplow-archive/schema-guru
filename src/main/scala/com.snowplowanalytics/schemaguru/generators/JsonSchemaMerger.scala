@@ -20,7 +20,6 @@ import Scalaz._
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
 
 import json.SchemaHelpers._
 
@@ -29,7 +28,6 @@ import json.SchemaHelpers._
  * a master schema which will validate any of the sub schemas.
  */
 object JsonSchemaMerger {
-
   /**
    * Merges a pair of JSON Schemas represented by
    * JValues. The output JSON Schema will validate
@@ -99,10 +97,6 @@ object JsonSchemaMerger {
 
       case ("items", JArray(items)) => ("items", mergeJsonSchemas(items))
     }
-
-  def reduceArray(items: List[JObject]): JValue = {
-    formatSchemaForMerge(items)
-  }
 
   /**
    * Reduces array to single value

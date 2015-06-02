@@ -1,4 +1,5 @@
-Version 0.1.0 (not released yet)
---------------------------------
-Recognize several string formats (uuid, date-time, ipv4, ipv6)
-Detect integer ranges
+0.1.0 (2015-06-02)
+------------------
+Initial version
+
+

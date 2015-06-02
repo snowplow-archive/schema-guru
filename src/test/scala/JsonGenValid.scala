@@ -1,13 +1,32 @@
+/*
+ * Copyright (c) 2015 Snowplow Analytics Ltd. All rights reserved.
+ *
+ * This program is licensed to you under the Apache License Version 2.0,
+ * and you may not use this file except in compliance with the Apache License Version 2.0.
+ * You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the Apache License Version 2.0 is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
+ */
+package com.snowplowanalytics.schemaguru
+package generators
+
+// Java
 import com.github.fge.jsonschema.main.{JsonSchema, JsonSchemaFactory}
 import org.joda.time.DateTime
+
+// json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
+// Testing
 import org.scalacheck._
 import org.specs2.{Specification, ScalaCheck}
 
-import com.snowplowanalytics.schemaguru.generators.JsonSchemaGenerator.jsonToSchema
-
+// This project
+import JsonSchemaGenerator.jsonToSchema
 
 class SelfValidSpecification extends Specification with ScalaCheck with JsonGen { def is = s2"""
   Derive schema from random generated JSON and validate against itself
@@ -33,9 +52,9 @@ class SelfValidSpecification extends Specification with ScalaCheck with JsonGen 
   }.set(maxSize = 15)
 
   def validateAgainstWrongSchema = Prop.forAll(generateJsonWithKeys(Map("mismatched_key" -> arbitraryJInt)),
-                                               generateJsonWithKeys(Map("mismatched_key" -> arbitraryJString)))
-  { (jsonForSchema: JValue, json: JValue) =>
-    val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
+                                               generateJsonWithKeys(Map("mismatched_key" -> arbitraryJString))) {
+    (jsonForSchema: JValue, json: JValue) =>
+    val factory: JsonSchemaFactory = JsonSchemaFactory.byDefault()
     val derivedInvalidSchema = asJsonNode(jsonToSchema(jsonForSchema))
     val invalidSchema: JsonSchema = factory.getJsonSchema(derivedInvalidSchema)
 
@@ -74,10 +93,8 @@ trait JsonGen {
     Gen.listOfN(n, value(depth))
 
   def value(depth: Int): Gen[JValue] =
-    if (depth == 0)
-      terminalType
-    else
-      Gen.oneOf(jsonType(depth - 1), terminalType)
+    if (depth == 0) { terminalType }
+    else { Gen.oneOf(jsonType(depth - 1), terminalType) }
 
   def terminalType: Gen[JValue] = Gen.oneOf(
     arbitraryJString,
@@ -115,7 +132,10 @@ trait JsonGen {
    * @return arbitrary JSON with predefined keys and arbitrary values
    */
   def generateJsonWithKeys(typeMap: Map[String, Gen[JValue]]): Gen[JObject] = {
-    val mapWithGeneratedValues = for { (k: String, v: Gen[JValue]) <- typeMap; vl <- v.sample} yield (k, vl)
+    val mapWithGeneratedValues = for {
+      (k: String, v: Gen[JValue]) <- typeMap
+      vl <- v.sample
+    } yield (k, vl)
     val jObject = JObject(mapWithGeneratedValues.toList)
     Gen.const(jObject)
   }
