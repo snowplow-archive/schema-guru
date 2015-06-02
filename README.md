@@ -1,55 +1,80 @@
 # Schema Guru
 
-[ ![Build Status] [travis-image] ] [travis]  [ ![License] [license-image] ] [license] [ ![Release] [release-image] ] [releases]
+[ ![Build Status] [travis-image] ] [travis]  [ ![Release] [release-image] ] [releases] [ ![License] [license-image] ] [license]
 
-Schema guru is tool (currently only CLI) allowing you to derive [JSON Schema] [json-schema] from set of available JSONs.
+Schema Guru is a tool (currently CLI only) allowing you to derive **[JSON Schemas] [json-schema]** from a set of JSON instances.
 
-Unlike other tools for deriving JSON Schema, Schema Guru allows you to derive schema from unlimited set of instances,
-and thus provide you drastically increased accuracy and much more validation properties.
+Unlike other tools for deriving JSON Schemas, Schema Guru allows you to derive schema from an unlimited set of instances (making schemas much more precise), and supports many more JSON Schema validation properties.
 
-## Quickstart
+Schema Guru is used heavily in association with Snowplow's own **[Snowplow] [snowplow]** and **[Iglu] [iglu]** projects.
 
-Assuming git, Vagrant and VirtualBox are installed:
+## User Quickstart
+
+Download the latest Schema Guru from Bintray:
+
+```bash
+$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_0.1.0.zip
+$ unzip schema_guru_0.1.0.zip
+```
+
+Assuming you have a recent JVM installed:
+
+```bash
+$ ./schema-guru-0.1.0 --dir {{jsons_directory}}
+```
+
+Also you can specify output file for your schema:
+
+```bash
+$ ./schema-guru-0.1.0 --dir {{jsons_directory}} --output {{json_schema_file}}
+```
+
+Or you can analyze a single JSON instance:
+
+```bash
+$ ./schema-guru-0.1.0 --file {{json_instance}}
+```
+
+## Developer Quickstart
+
+Assuming git, **[Vagrant] [vagrant-install]** and **[VirtualBox] [virtualbox-install]** installed:
 
 ```bash
  host$ git clone https://github.com/snowplow/schema-guru.git
  host$ cd schema-guru
  host$ vagrant up && vagrant ssh
 guest$ cd /vagrant
-guest$ sbt compile
-``` 
-
-To run SchemaGuru from SBT:
-
-```bash
-guest$ sbt
-schema-guru > run --dir {{jsons_directory}}
+guest$ sbt test
 ```
 
-Also you can specify output file for your schema:
+## User Manual
 
-```bash
-schema-guru > run --dir {{jsons_directory}} --output {{json_schema_file}}
-```
+### Functionality
 
-Or you can analyze only one JSON instance:
+* Takes a directory as an argument and will print out the resulting JsonSchema:
+  - Processes each JSON sequentially
+  - Merges all results into one master Json Schema
+* Recognizes following JSON Schema formats:
+  - uuid
+  - date-time (according to ISO-8601)
+  - IPv4 and IPv6 addresses
+  - HTTP, HTTPS, FTP URLs
+* Detects integer ranges according to Int16, Int32, Int64
 
-```bash
-schema-guru > run --file {{json_instance}}
-```
+### Assumptions
 
-### Current Assumptions
-
-* All JSONs in the directory are assumed to be of the same event type and will be merged together.
+* All JSONs in the directory are assumed to be of the same event type and will be merged together
 * All JSONs are assumed to start with either `{ ... }` or `[ ... ]`
   - If they do not they are discarded
+* Schema should be as strict as possible - e.g. no `additionalProperties` are allowed currently
 
-# Example
+### Example
 
-Here's example including many of subtle mistakes which couldn't be found by tools working with single instances.
+Here's an example of some subtle points which a tool working with a single JSON instance would miss.
 
 First instance:
-```
+
+```json
 { "event": {
     "just_a_string": "Any string may be here",
     "sometimes_ip": "192.168.1.101",
@@ -63,7 +88,8 @@ First instance:
 ```
 
 Second instance:
-```
+
+```json
 { "event": {
     "just_a_string": "No particular format",
     "sometimes_ip": "This time it's not an IP",
@@ -77,8 +103,9 @@ Second instance:
         "date": "1961-07-03T12:00:00+07:00" }}}
 ```
 
-Schema!
-```
+The generated schema:
+
+```json
 { "type" : "object",
   "properties" : {
     "event" : {
@@ -116,33 +143,18 @@ Schema!
   "additionalProperties" : false }
 ```
 
-### Current Functionality
+## Copyright and License
 
-* Can take a directory as an argument and will print out the resulting JsonSchema:
-  - Processes each JSON sequentially
-  - Merges all results into one master JsonSchema
-* Recognize following JSON Schema formats:
-  - uuid
-  - date-time (accoridng to ISO-8601:2004)
-  - IPv4 and IPv6 addresses
-  - HTTP, HTTPS, FTP URLs
-* Detect integer ranges according to Int16, Int32, Int64
+Schema Guru is copyright 2014-2015 Snowplow Analytics Ltd.
 
-### What it does not do yet...
+Licensed under the **[Apache License, Version 2.0] [license]** (the "License");
+you may not use this software except in compliance with the License.
 
-SchemaGuru also produces a very strict Schema in that there are zero additionalProperties allowed currently.
-
-### Packaging
-
-```bash
-VERSION=0.1.0
-cat bin/jarx-stub.sh target/scala-2.10/schema-guru.jar > target/scala-2.10/schema-guru
-chmod +x target/scala-2.10/schema-guru
-zip -j "package/snowplow_schema_guru_${VERSION}_linux.zip" target/scala-2.10/schema-guru
-```
-
-Then upload `package/snowplow_schema_guru_${VERSION}_linux.zip` to Snowplow's open source Bintray.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 [travis]: https://travis-ci.org/snowplow/schema-guru
 [travis-image]: https://travis-ci.org/snowplow/schema-guru.png?branch=master
@@ -150,7 +162,13 @@ Then upload `package/snowplow_schema_guru_${VERSION}_linux.zip` to Snowplow's op
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
-[release-image]: http://img.shields.io/badge/release-unreleased-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-0.1.0-blue.svg?style=flat
 [releases]: https://github.com/snowplow/schema-guru/releases
 
 [json-schema]: http://json-schema.org/
+
+[snowplow]: https://github.com/snowplow/snowplow
+[iglu]: https://github.com/snowplow/iglu
+
+[vagrant-install]: http://docs.vagrantup.com/v2/installation/index.html
+[virtualbox-install]: https://www.virtualbox.org/wiki/Downloads

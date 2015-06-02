@@ -21,7 +21,7 @@ object BuildSettings {
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
     organization          :=  "com.snowplowanalytics",
-    version               :=  "0.1.0-M1",
+    version               :=  "0.1.0",
     description           :=  "For deriving JSON Schemas from collections of JSON instances",
     scalaVersion          :=  "2.10.5",
     crossScalaVersions    :=  Seq("2.10.5", "2.11.6"),
@@ -51,9 +51,18 @@ object BuildSettings {
   import AssemblyKeys._
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
 
-    // Simpler jar name
-    jarName in assembly := {
-      name.value + ".jar"
+    // Executable jarfile
+    assemblyOption in assembly ~= { _.copy(prependShellScript = Some(defaultShellScript)) },
+
+    // Name it as an executable
+    jarName in assembly := { s"${name.value}-${version.value}" },
+
+    // Drop these jars
+    excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
+      val excludes = Set(
+        "commons-beanutils-1.8.3.jar" // Clashes with commons-collections
+      )
+      cp filter { jar => excludes(jar.data.getName) }
     },
 
     // Make this executable
