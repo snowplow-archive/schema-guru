@@ -48,7 +48,7 @@ trait SchemaNumberHelper extends SchemaHelper {
 
   /**
    * Eliminates maximum property possible left by merge with integer
-   * and also minimum if number could be negative (otherwise set it to 0)
+   * and minimum property if number can be negative (otherwise set it to 0)
    *
    * @param original is unreduced JSON Schema with number field
    *                 and minimum field as JArray in it
@@ -68,9 +68,9 @@ trait SchemaNumberHelper extends SchemaHelper {
   /**
    * Check if field type contains both integer and number
    *
-   * @param jArray value of type
+   * @param types array of types
    * @return boolean indicating whether it is merged value
    */
-  def isMergedNumber(jArray: List[JValue]): Boolean =
-    jArray.sorted(JValueOrdering.toScalaOrdering) == List(JString("integer"), JString("number"))
+  def isMergedNumber(types: List[JValue]): Boolean =
+    types.contains(JString("integer")) && types.contains(JString("number"))
 }

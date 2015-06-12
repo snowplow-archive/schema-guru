@@ -90,8 +90,9 @@ object JsonSchemaMerger {
       case ("type", JObject(v))     => ("type", JObject(v))
       case ("type", JString(v))     => ("type", JArray(List(v)))
 
-      case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
+      case ("minimum", JDouble(m))  => ("minimum", JArray(List(m)))
       case ("minimum", JInt(m))     => ("minimum", JArray(List(m)))
+      case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
 
       case ("format", JString(f))   => ("format", JArray(List(f)))
 
@@ -113,7 +114,7 @@ object JsonSchemaMerger {
       case ("type", JArray(list)) =>
         ("type", list match {
           case list if list.size == 1       => list(0)
-          case list if isMergedNumber(list) => "number"
+          case list if isMergedNumber(list) => list.filterNot(_ == JString("integer"))
           case list                         => JArray(list)
         })
       case ("properties", properties) =>
