@@ -1,6 +1,7 @@
 Vagrant.configure("2") do |config|
 
   config.vm.box = "ubuntu/trusty64"
+  config.vm.network "public_network", bridge: 'en1: Wi-Fi (AirPort)'
   config.vm.hostname = "schema-guru"
   config.ssh.forward_agent = true
 

@@ -24,8 +24,8 @@ trait SchemaStringHelper extends SchemaHelper {
   private[json] case class StringFieldReducer(formats: List[String]) {
     def getFormat: String = {
       val formatSet = formats.toSet.toList
-      if (formatSet.size == 1) formatSet.head
-      else "none"
+      if (formatSet.size == 1) { formatSet.head }
+      else { "none" }
     }
   }
 

@@ -71,7 +71,9 @@ object JsonSchemaGenerator {
    */
   def jsonToSchema(json: JValue): JValue =
     json match {
-      case JObject(x) => ("type", "object") ~ ("properties", jObjectListProcessor(x)) ~ ("additionalProperties", false)
+      case JObject(x) => ("type", "object") ~
+                         ("properties", jObjectListProcessor(x)) ~
+                         ("additionalProperties", false)
       case JArray(x)  => ("type", "array") ~ ("items", jArrayListProcessor(x))
       case _          => null
     }
@@ -94,8 +96,8 @@ object JsonSchemaGenerator {
           case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
           case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
           case (k, JString(v))  => List((k, Annotations.annotateString(v)))
-          case (k, JInt(v))     => List((k, Annotations.annotateString(v)))
-          case (k, JDecimal(v)) => List((k, Annotations.annotateString(v)))
+          case (k, JInt(v))     => List((k, Annotations.annotateInteger(v)))
+          case (k, JDecimal(v)) => List((k, Annotations.annotateDecimal(v)))
           case (k, JDouble(v))  => List((k, Annotations.annotateDouble(v)))
           case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
           case (k, JNull)       => List((k, JsonSchemaType.NullT))
@@ -124,8 +126,8 @@ object JsonSchemaGenerator {
           case JObject(v)  => jsonToSchema(JObject(v))
           case JArray(v)   => jsonToSchema(JArray(v))
           case JString(v)  => Annotations.annotateString(v)
-          case JInt(v)     => Annotations.annotateString(v)
-          case JDecimal(v) => Annotations.annotateString(v)
+          case JInt(v)     => Annotations.annotateInteger(v)
+          case JDecimal(v) => Annotations.annotateDecimal(v)
           case JDouble(v)  => Annotations.annotateDouble(v)
           case JBool(_)    => JsonSchemaType.BooleanT
           case JNull       => JsonSchemaType.NullT
@@ -219,6 +221,7 @@ object JsonSchemaGenerator {
 
     /**
      * Adds properties to string field
+     * TODO: consider one method name with overloaded arguments
      *
      * @return JsonSchemaType with recognized properties
      */
@@ -228,13 +231,13 @@ object JsonSchemaGenerator {
     /**
      * Set value itself as minimum and maximum for future merge and reduce
      */
-    def annotateString(value: BigInt) =
+    def annotateInteger(value: BigInt) =
       JsonSchemaType.IntegerT ~ ("minimum", value) ~ ("maximum", value)
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
      */
-    def annotateString(value: BigDecimal) =
+    def annotateDecimal(value: BigDecimal) =
       JsonSchemaType.DecimalT ~ ("minimum", value)
 
     /**
