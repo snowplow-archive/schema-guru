@@ -1,0 +1,25 @@
+{
+  "name": "schema-guru-webui-frontend",
+  "version": "0.2.0",
+  "dependencies": {
+    "jsondiffpatch": "^0.1.31",
+    "lodash": "~3.9.3",
+    "react": "~0.13.3",
+    "react-dropzone": "^1.2.0",
+    "reflux": "^0.2.8",
+    "superagent": "~1.2.0"
+  },
+  "devDependencies": {
+    "browserify": "^10.2.4",
+    "gulp": "^3.9.0",
+    "gulp-if": "^1.2.5",
+    "gulp-livereload": "^3.8.0",
+    "gulp-streamify": "0.0.5",
+    "gulp-uglify": "~1.2.0",
+    "gulp-util": "~3.0.5",
+    "reactify": "~1.1.1",
+    "vinyl-source-stream": "~1.1.0",
+    "watchify": "^3.2.2"
+  },
+  "license": "Apache-2"
+}

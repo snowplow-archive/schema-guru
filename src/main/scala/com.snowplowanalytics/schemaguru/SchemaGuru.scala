@@ -22,6 +22,9 @@ import generators.{
   JsonSchemaMerger => JSM
 }
 
+// json4s
+import org.json4s.JValue
+
 object SchemaGuru {
   /**
    * Takes the valid list of JSONs
@@ -46,4 +49,7 @@ object SchemaGuru {
 
     SchemaGuruResult(JSM.mergeJsonSchemas(goodJsons), badJsons.toList)
   }
+
+  // TODO: implement it
+  def splitSchemaAndAuxiliaryInfo(reducedSchema: JValue): (JValue, JValue) = ???
 }

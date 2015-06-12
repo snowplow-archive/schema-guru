@@ -20,6 +20,8 @@ import Scalaz._
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods._
+
 
 import json.SchemaHelpers._
 
@@ -71,7 +73,10 @@ object JsonSchemaMerger {
   // TODO: handle case where _starting_ List is empty (see: reduceLeftOption above)
   def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil): JValue =
     jsonSchemaList match {
-      case x :: xs => mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(accum))
+      case x :: xs => {
+        val annotatedAcc = LevenshteinAnnotator.addPossibleDuplicatesToAcc(x, accum)
+        mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(annotatedAcc))
+      }
       case Nil     => reduceMergedSchema(accum)
     }
 
