@@ -74,7 +74,7 @@ object JsonSchemaMerger {
   def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil): JValue =
     jsonSchemaList match {
       case x :: xs => {
-        val annotatedAcc = LevenshteinAnnotator.addPossibleDuplicatesToAcc(x, accum)
+        val annotatedAcc = LevenshteinAnnotator.addPossibleDuplicates(x, accum)
         mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(annotatedAcc))
       }
       case Nil     => reduceMergedSchema(accum)
@@ -105,7 +105,10 @@ object JsonSchemaMerger {
     }
 
   /**
-   * Reduces array to single value
+   * Reduces merged representation of schema to single schema.
+   * reduceMergedSchema produce valid JSON schema, but annotated
+   * with auxiliary data (like possibleDuplicates), which should
+   * be removed in further steps.
    *
    * i.e. "type" : ["string"] -> "type" : "string"
    *      "type" : ["integer", "number"] -> "type" : "number"

@@ -23,12 +23,13 @@ import generators.{
 }
 
 // json4s
-import org.json4s.JValue
+import org.json4s._
+import org.json4s.JsonDSL._
 
 object SchemaGuru {
   /**
-   * Takes the valid list of JSONs
-   * and returns the JsonSchema
+   * Takes the valid list of JSONs and returns the JsonSchema
+   * Core function of Schema Guru
    *
    * @param list The Validated JSON list
    * @return the final JsonSchema
@@ -47,9 +48,10 @@ object SchemaGuru {
       Failure(err) <- list
     } yield err
 
-    SchemaGuruResult(JSM.mergeJsonSchemas(goodJsons), badJsons.toList)
-  }
+    val schema = JSM.mergeJsonSchemas(goodJsons)  // Schema with aux info
 
-  // TODO: implement it
-  def splitSchemaAndAuxiliaryInfo(reducedSchema: JValue): (JValue, JValue) = ???
+    val (finalSchema, warning) = SchemaWarning.splitSchemaAndWarnings(schema)
+
+    SchemaGuruResult(finalSchema, badJsons.toList, warning)
+  }
 }

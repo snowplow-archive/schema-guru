@@ -1,9 +1,11 @@
 package com.snowplowanalytics.schemaguru.generators
 
+// Scala
+import scala.math.min
+
+// json4s
 import org.json4s._
 import org.json4s.JsonDSL._
-
-import scala.math.min
 
 object LevenshteinAnnotator {
   /**
@@ -11,10 +13,10 @@ object LevenshteinAnnotator {
    */
   type KeyPairs = Set[Pair[String, String]]
 
-  val thresholdDistance = 3
-
-  // Strings shorter than thresholdLength aren't counting
+  // Strings shorter than thresholdLength do not comparing
   val thresholdLength = 3
+
+  val thresholdDistance = 3
 
   /**
    * Actual Levenshtein distance function.
@@ -24,11 +26,12 @@ object LevenshteinAnnotator {
    * @param b second sequence
    * @return value indicating distance
    */
-  def calculateDistance[A](a: Iterable[A], b: Iterable[A]): Int =
+  def calculateDistance[A](a: Iterable[A], b: Iterable[A]): Int = {
     ((0 to b.size).toList /: a)((prev, x) =>
       (prev zip prev.tail zip b).scanLeft(prev.head + 1) {
         case (h, ((d, v), y)) => min(min(h + 1, v + 1), d + (if (x == y) 0 else 1))
       }).last
+  }
 
   /**
    * Convert KeyPairs to it's JSON array representation
@@ -51,12 +54,12 @@ object LevenshteinAnnotator {
    * Annotate unreduced accumulated schema with array of
    * possible duplicates taken from current schema
    *
-   * @param schema current schema
-   * @param accum unreduced accumulated schema
+   * @param currentSchema current schema
+   * @param accum unreduced accumulated schema (which will be annotated)
    * @return unreduced schema with array of possible duplicates
    */
-  def addPossibleDuplicatesToAcc(schema: JValue, accum: JValue = Nil): JValue = {
-    val schKeys = SchemaType.getFrom(schema).map(_.extractAllKeys)
+  def addPossibleDuplicates(currentSchema: JValue, accum: JValue): JValue = {
+    val schKeys = SchemaType.getFrom(currentSchema).map(_.extractAllKeys)
     val accKeys = SchemaType.getFrom(accum).map(_.extractAllKeys)
     val closePairs = (schKeys, accKeys) match {
       case (Some(s), Some(a)) => compareSets(s, a)
@@ -64,7 +67,10 @@ object LevenshteinAnnotator {
     }
 
     accum match {
-      case obj @ JObject(_) => obj ~ ("possibleDuplicates", pairsToJArray(closePairs))
+      case obj: JObject => {
+        val duplicates: JObject = ("possibleDuplicates",  pairsToJArray(closePairs))
+        obj.merge((duplicates))
+      }
       case _ => accum
     }
   }
@@ -78,12 +84,13 @@ object LevenshteinAnnotator {
    * @param ys other set of strings
    * @return set of all possible pairs
    */
-  def crossProduct(xs: Set[String], ys: Set[String]): KeyPairs =
+  def crossProduct(xs: Set[String], ys: Set[String]): KeyPairs = {
     for {
       x <- xs
       y <- ys
-      if (x.length > thresholdLength && y.length > thresholdLength)  // it doesn't make sense to compare short keys
+      if (x.length > thresholdLength && y.length > thresholdLength) // it doesn't make sense to compare short keys
     } yield (x, y)
+  }
 
   /**
    * Calculate Levenshtein for all possible combinations of elements of two sets
@@ -98,6 +105,4 @@ object LevenshteinAnnotator {
       else Set((s._1, s._2))
     })
   }
-
-
 }

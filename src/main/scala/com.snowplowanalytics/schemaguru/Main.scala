@@ -74,11 +74,16 @@ object Main extends App with FileSystemJsonGetters {
         case None => println(pretty(render(result.schema)))
       }
 
-      // Print Errors
+      // Print errors
       if (!result.errors.isEmpty) {
         println("Errors:\n " + result.errors.mkString("\n"))
       }
+
+      // Print warnings
+      result.warning match {
+        case Some(warning) => println(warning.consoleMessage)
+        case _ =>
+      }
     }
   }
-
 }
