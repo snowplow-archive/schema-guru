@@ -24,6 +24,7 @@ module.exports = Reflux.createActions([
     "instanceToggled",          // we include/exclude some instance
     "switchSchemaView",         // we switched view from plain to diff
     "addErrors",                // we received some errors
+    "addWarning",               // we received warning
     "viewShowDiff",             // something wants to look at diff
     "viewShowPlain"             // something wants to look at plain schema
 ]);

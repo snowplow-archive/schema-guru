@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2015 Snowplow Analytics Ltd. All rights reserved.
+ *
+ * This program is licensed to you under the Apache License Version 2.0,
+ * and you may not use this file except in compliance with the Apache License Version 2.0.
+ * You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the Apache License Version 2.0 is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
+ */
 package com.snowplowanalytics.schemaguru.generators
 
 // Scala
@@ -40,13 +52,13 @@ object LevenshteinAnnotator {
    * @return JSON Array with unique pairs
    */
   def pairsToJArray(pairs: KeyPairs): JArray = {
-    val setOfJArrays: Set[JArray] = pairs.map(pp => {
-      if (pp._1 <= pp._2) {      // preserve order, so merge remain associative
-        List(JString(pp._1), JString(pp._2))
+    val setOfJArrays: Set[JArray] = pairs.map { case (first, second) => {
+      if (first <= second) {      // preserve order, so merge remain associative
+        List(JString(first), JString(second))
       } else {
-        List(JString(pp._2), JString(pp._1))
+        List(JString(second), JString(first))
       }
-    }).map(JArray(_))
+    }} map(JArray(_))
     JArray(setOfJArrays.toList)
   }
 
@@ -77,7 +89,7 @@ object LevenshteinAnnotator {
 
   /**
    * Helper function for producing all possible pairs
-   * for Strings with length > 3
+   * for Strings with length > ``thresholdLength``
    * Ex: (a, b),(d, e) = (a,d),(a,e)(b,d),(b,e)
    *
    * @param xs set of strings
@@ -99,10 +111,10 @@ object LevenshteinAnnotator {
    * @return pairs which distance threshold is lower than specified
    */
   def compareSets(schKeys: Set[String], accKeys: Set[String]): KeyPairs = {
-    crossProduct(schKeys, accKeys).flatMap(s => {
-      val distance = calculateDistance(s._1, s._2)
+    crossProduct(schKeys, accKeys).flatMap { case (first, second) => {
+      val distance = calculateDistance(first, second)
       if (distance == 0 || distance > thresholdDistance) Set.empty[Pair[String, String]]
-      else Set((s._1, s._2))
-    })
+      else Set((first, second))
+    }}
   }
 }

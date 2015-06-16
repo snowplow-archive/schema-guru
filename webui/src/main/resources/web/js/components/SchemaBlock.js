@@ -17,6 +17,7 @@
 var React = require('react');
 
 var SchemaViewSwitcher = require('./SchemaViewSwitcher');
+var SchemaWarning = require('./SchemaWarning');
 
 /**
  * Component displaying schema
@@ -28,6 +29,7 @@ module.exports = React.createClass({
                 <h2>Your schema</h2>
                 <SchemaViewSwitcher currentView={this.props.schema.currentView} />
                 <pre dangerouslySetInnerHTML={{__html: this.props.schema.schemaText}} />
+                <SchemaWarning warning={this.props.schema.warning} />
             </div>)
     }
 });

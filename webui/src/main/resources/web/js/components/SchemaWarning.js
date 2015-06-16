@@ -14,24 +14,33 @@
  */
 'use strict';
 
+var _ = require("lodash");
 var React = require('react');
 
-var GuruActions = require('../actions');
-
 /**
- * Tabs responsible for switching view of schema
+ * Component responsible for output duplicated keys warning
  */
 module.exports = React.createClass({
-    getClassName: function(key) {
-        return key == this.props.currentView ? 'active' : ''
-    },
-
-    // React methods
     render: function () {
-        return (<div className="schema-view">
-            <a className={this.getClassName("diff")} onClick={GuruActions.viewShowDiff} href="#">Diff</a>
-            <a className={this.getClassName("plain")} onClick={GuruActions.viewShowPlain} href="#">Plain</a>
-        </div>)
+        if (_.isEmpty(this.props.warning)) {
+            return ( <div></div> )
+        }
+        else {
+            return (
+                <div className="warning">
+                    <h2>Warning</h2>
+                    <div className="warning-message">{this.props.warning.message}</div>
+                    <table className="warning-items">
+                        <tbody>
+                        { _.map(this.props.warning.items, i =>
+                            (<tr key={i[0]+i[1]}>
+                                <td>{i[0]}</td>
+                                <td>{i[1]}</td>
+                            </tr>)) }
+                        </tbody>
+                    </table>
+                </div>
+            )
+        }
     }
 });
-

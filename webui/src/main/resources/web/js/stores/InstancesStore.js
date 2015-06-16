@@ -63,7 +63,7 @@ module.exports = Reflux.createStore({
      */
     onAddErrors: function (errors) {
         var self = this;
-        _.forEach(errors, (e) => {
+        _.forEach(errors, (e) => {          // add error message to corresponding instance
             _.map(self.instances, (i) => {
                 if (e.file === i.name) {
                     i.error = e.error;

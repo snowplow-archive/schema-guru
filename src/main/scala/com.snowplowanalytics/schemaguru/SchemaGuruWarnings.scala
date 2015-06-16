@@ -63,12 +63,16 @@ case class PossibleDuplicatesWarning(possibleDuplicates: List[List[String]]) ext
   implicit def pairsToJArray(pairs: List[List[String]]): JArray =
     JArray(pairs.map(p => JArray(p.map(s => JString(s)))))
 
-  def jsonMessage =
-    ("message", "Possibly duplicated keys found") ~ ("items", possibleDuplicates)
+  def isEmpty =
+    if (possibleDuplicates.isEmpty || possibleDuplicates.head.isEmpty) true
+    else false
 
-  def consoleMessage = possibleDuplicates match {
-    case Nil => ""
-    case _ => "Possibly duplicated keys found:\n" + possibleDuplicates.map(_.mkString(": ")).mkString("\n")
-  }
+  def jsonMessage =
+    if (this.isEmpty) { JNothing }
+    else { ("message", "Possibly duplicated keys found") ~ ("items", possibleDuplicates) }
+
+  def consoleMessage =
+    if (this.isEmpty) { "" }
+    else { "Possibly duplicated keys found:\n" + possibleDuplicates.map(_.mkString(": ")).mkString("\n") }
 }
 

@@ -124,6 +124,18 @@ button[disabled] {
     cursor: default;
 }
 
+pre {
+    margin-bottom: 24px;
+}
+
+.warning-message {
+    margin-bottom: 6px;
+}
+
+.warning-items {
+    width: 100%;
+}
+
 footer {
     border-top: 1px solid #cecece;
     clear: both;

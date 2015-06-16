@@ -30,7 +30,8 @@ module.exports = Reflux.createStore({
     // public state accessible from components
     state: {
         currentView: 'diff',    // current schema tab
-        schemaText: '{}'        // textual representation of Schema (diff of plain text)
+        schemaText: '{}',       // textual representation of Schema (diff of plain text)
+        warning: {}             // warning about possible duplicates
     },
 
     // private auxiliary state
@@ -77,6 +78,16 @@ module.exports = Reflux.createStore({
     },
 
     /**
+     * Fire addWarning if warning found in response
+     * @param res full superagent's response object
+     */
+    processWarning: function(res) {
+        if (typeof res.body.warning !== 'undefined') {
+            GuruActions.addWarning(res.body.warning);
+        }
+    },
+
+    /**
      * Handle schemaReceived action
      * @param err contains data on HTTP code != 200
      *        so far Guru API endpoint always return code 200
@@ -84,6 +95,7 @@ module.exports = Reflux.createStore({
      */
     onSchemaReceived: function(err, res) {
         this.processErrors(res);
+        this.processWarning(res);
         this.schema = res.body.schema;
         if (_.isEqual(this.previous, this.schema)) { return }
         this.computeDelta();
@@ -105,6 +117,14 @@ module.exports = Reflux.createStore({
     onViewShowPlain: function() {
         this.state.currentView = 'plain';
         this.state.schemaText = JSON.stringify(this.schema, null, "  ");
+        this.trigger(this.state);
+    },
+
+    /**
+     * Handle addWarning action
+     */
+    onAddWarning: function(warning) {
+        this.state.warning = warning;
         this.trigger(this.state);
     }
 });
