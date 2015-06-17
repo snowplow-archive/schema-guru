@@ -198,7 +198,15 @@ object JsonSchemaGenerator {
       else { None }
     }
 
+    def suggestBase64Pattern(string: String): Option[String] = {
+      val regex = "^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
+      if (string.matches(regex)) { Some(regex) }
+      else None
+    }
+
+
     private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _, suggestIpFormat _, suggestUrlFormat _)
+    private val patternSuggestions = List(suggestBase64Pattern _)
 
     /**
      * Tries to guess format of the string
@@ -226,7 +234,9 @@ object JsonSchemaGenerator {
      * @return JsonSchemaType with recognized properties
      */
     def annotateString(value: String) =
-      JsonSchemaType.StringT ~ ("format", guessFormat(value, formatSuggestions))
+      JsonSchemaType.StringT ~
+      ("format", guessFormat(value, formatSuggestions)) ~
+      ("pattern", guessFormat(value, patternSuggestions))
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce

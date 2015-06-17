@@ -100,6 +100,7 @@ object JsonSchemaMerger {
       case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
 
       case ("format", JString(f))   => ("format", JArray(List(f)))
+      case ("pattern", JString(f))   => ("pattern", JArray(List(f)))
 
       case ("items", JArray(items)) => ("items", mergeJsonSchemas(items))
     }
@@ -128,6 +129,7 @@ object JsonSchemaMerger {
       case ("properties", properties) =>
         ("properties", properties map(reduceIntegerFieldRange)
                                   map(reduceNumberFieldRange)
-                                  map(reduceStringFieldFormat))
+                                  map(reduceStringFieldFormat)
+                                  map(reduceStringFieldPattern))
     }
 }

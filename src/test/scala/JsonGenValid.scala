@@ -37,8 +37,13 @@ class SelfValidSpecification extends Specification with ScalaCheck with JsonGen 
 
   def validateJsonAgainstDerivedSchema = prop { (json: JValue) =>
     val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
-    val derivedSchema = asJsonNode(jsonToSchema(json))
+    val jss = jsonToSchema(json)
+    val derivedSchema = asJsonNode(jss)
     val schema: JsonSchema = factory.getJsonSchema(derivedSchema)
+
+    println(pretty(jss))
+    println(schema.validate(asJsonNode(json)))
+    println(pretty(json))
 
     schema.validate(asJsonNode(json)).isSuccess must beTrue
   }.set(maxSize = 20)

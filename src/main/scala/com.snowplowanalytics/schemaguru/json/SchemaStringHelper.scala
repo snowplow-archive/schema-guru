@@ -21,10 +21,16 @@ trait SchemaStringHelper extends SchemaHelper {
    *
    * @param formats list of all encountered formats
    */
-  private[json] case class StringFieldReducer(formats: List[String]) {
+  private[json] case class StringFieldReducer(formats: List[String], patterns: List[String]) {
     def getFormat: String = {
       val formatSet = formats.toSet.toList
       if (formatSet.size == 1) { formatSet.head }
+      else { "none" }
+    }
+
+    def getPattern: String = {
+      val patternSet = patterns.toSet.toList
+      if (patternSet.size == 1) { patternSet.head }
       else { "none" }
     }
   }
@@ -37,13 +43,30 @@ trait SchemaStringHelper extends SchemaHelper {
    *               JObject with type string, and format array
    * @return reducer if it is really string field
    */
-  private[json] def extractStringField(jField: JValue): Option[StringFieldReducer] = {
+  private[json] def extractStringWithFormat(jField: JValue): Option[StringFieldReducer] = {
     val list: List[StringFieldReducer] = for {
       JObject(field) <- jField
       JField("format", JArray(formats)) <- field
       JField("type", types) <- field
       if (contains(types, "string"))
-    } yield StringFieldReducer(formats)
+    } yield StringFieldReducer(formats, Nil)
+    list.headOption
+  }
+  /**
+   * Tries to extract unreduced string field
+   * Unreduced state imply it has pattern field as array
+   *
+   * @param jField any JValue, but for extraction it need to be
+   *               JObject with type string, and pattern array
+   * @return reducer if it is really string field
+   */
+  private[json] def extractStringWithPattern(jField: JValue): Option[StringFieldReducer] = {
+    val list: List[StringFieldReducer] = for {
+      JObject(field) <- jField
+      JField("pattern", JArray(patterns)) <- field
+      JField("type", types) <- field
+      if (contains(types, "string"))
+    } yield StringFieldReducer(Nil, patterns)
     list.headOption
   }
 
@@ -55,11 +78,28 @@ trait SchemaStringHelper extends SchemaHelper {
    * @return same JValue if string type wasn't or modified JValue otherwise
    */
   def reduceStringFieldFormat(original: JValue) = {
-    val stringField = extractStringField(original)
+    val stringField = extractStringWithFormat(original)
     stringField match {
       case Some(reducer) => original.merge(JObject("format" -> JString(reducer.getFormat)))  // it may be removed further
                                     .removeField { case JField("format", JString("none")) => true
-      case _ => false }
+                                                   case _ => false }
+      case None => original
+    }
+  }
+
+  /**
+   * Eliminates pattern property if more than one format presented
+   *
+   * @param original is unreduced JSON Schema with string field
+   *                 and pattern property as JArray in it
+   * @return same JValue if string type wasn't or modified JValue otherwise
+   */
+  def reduceStringFieldPattern(original: JValue) = {
+    val stringField = extractStringWithPattern(original)
+    stringField match {
+      case Some(reducer) => original.merge(JObject("pattern" -> JString(reducer.getPattern)))  // it may be removed further
+                                    .removeField { case JField("pattern", JString("none")) => true
+                                                   case _ => false }
       case None => original
     }
   }
