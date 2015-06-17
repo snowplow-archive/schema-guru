@@ -22,10 +22,6 @@ import generators.{
   JsonSchemaMerger => JSM
 }
 
-// json4s
-import org.json4s._
-import org.json4s.JsonDSL._
-
 object SchemaGuru {
   /**
    * Takes the valid list of JSONs and returns the JsonSchema

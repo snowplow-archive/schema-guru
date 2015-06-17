@@ -12,6 +12,9 @@
  */
 package com.snowplowanalytics.schemaguru
 
+// Scala
+import scala.language.implicitConversions
+
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._

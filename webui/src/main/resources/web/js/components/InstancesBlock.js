@@ -25,8 +25,11 @@ var JsonInput = require('./JsonInput');
  * Whole left side
  */
 module.exports = React.createClass({
-    onDrop: function(files) {
-        GuruActions.instancesAdded(files);
+    onDrop: function(files, e) {
+        if (files.length == 0) {    // it can be plain text
+            var content = e.nativeEvent.dataTransfer.getData('Text');
+            GuruActions.textInstanceAdded(content);
+        } else { GuruActions.instancesAdded(files) }
         this.setState({
             message: 'Keep dragging!'
         })
