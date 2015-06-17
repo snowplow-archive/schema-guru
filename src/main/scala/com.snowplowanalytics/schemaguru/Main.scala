@@ -22,6 +22,7 @@ import org.json4s.jackson.JsonMethods._
 
 // Argot
 import org.clapper.argot._
+import org.clapper.argot.ArgotConverters._
 
 // This library
 import utils.FileSystemJsonGetters
@@ -37,23 +38,25 @@ object Main extends App with FileSystemJsonGetters {
     )
   )
 
-  val directoryArgument = parser.option[ValidJsonList](List("dir"), "directory", "Directory which contains JSONs to be converted") {
-    (c, _) => { getJsonsFromFolder(c) }
-  }
-
-  val fileArgument = parser.option[Validation[String, JValue]](List("file"), "file", "Single JSON instance to be converted") {
-    (c, _) => { getJsonFromFile(c) }
-  }
-
-  val outputFileArgument = parser.option[String]("output", "file", "Output file") { (c, _) => c }
+  val directoryArgument = parser.option[String](List("dir"), "directory", "Directory which contains JSONs to be converted")
+  val fileArgument = parser.option[String](List("file"), "file", "Single JSON instance to be converted")
+  val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
+  val outputFileArgument = parser.option[String]("output", "file", "Output file")
 
   parser.parse(args)
 
+  // Decide where and which files should be parsed
   val jsonList: ValidJsonList = directoryArgument.value match {
-    case Some(dir) => dir
+    case Some(dir) => ndjsonFlag.value match {
+      case Some(true) => getJsonsFromFolderWithNDFiles(dir)
+      case _          => getJsonsFromFolder(dir)
+    }
     case None      => fileArgument.value match {
-      case Some(file) => List(file)
       case None       => parser.usage("either --dir or --file argument must be provided")
+      case Some(file) => ndjsonFlag.value match {
+        case Some(true) => getJsonFromNDFile(file)
+        case _          => List(getJsonFromFile(file))
+      }
     }
   }
 
@@ -76,12 +79,12 @@ object Main extends App with FileSystemJsonGetters {
 
       // Print errors
       if (!result.errors.isEmpty) {
-        println("Errors:\n " + result.errors.mkString("\n"))
+        println("\nErrors:\n " + result.errors.mkString("\n"))
       }
 
       // Print warnings
       result.warning match {
-        case Some(warning) => println(warning.consoleMessage)
+        case Some(warning) => println("\n" + warning.consoleMessage)
         case _ =>
       }
     }

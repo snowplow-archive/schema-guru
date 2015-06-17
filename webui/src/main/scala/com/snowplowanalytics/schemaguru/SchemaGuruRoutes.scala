@@ -23,21 +23,10 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
 trait SchemaGuruRoutes extends HttpService with HttpJsonGetters {
-
-  def index = path("") {
-    getFromResource("web/index.html")
-  }
-
-  def staticJs = pathPrefix("dist") {
-    compressResponse() {
-      getFromResourceDirectory("web/dist")
-    }
-  }
-
-  def staticCss = pathPrefix("css") {
-    getFromResourceDirectory("web/css")
-  }
-
+  /**
+   * Pipe route to ``convertsToJsonToSchema`` core function
+   * Accept POST request with JSON files
+   */
   def upload = path("upload") {
     post {
       respondWithMediaType(`application/json`) {
@@ -48,8 +37,8 @@ trait SchemaGuruRoutes extends HttpService with HttpJsonGetters {
                 val jsons: ValidJsonList = getJsonFromRequest(formData)
                 val result = SchemaGuru.convertsJsonsToSchema(jsons)
                 val errors = getErrorsAsJson(result.errors)
-                compact((
-                  ("status", "processed"): JObject) ~
+                compact(
+                  (("status", "processed"): JObject) ~
                   ("schema", result.schema) ~
                   ("errors", errors) ~
                   ("warning", result.warning.map(_.jsonMessage))
@@ -60,6 +49,19 @@ trait SchemaGuruRoutes extends HttpService with HttpJsonGetters {
         }
       }
     }
+  }
+
+  // Serve static
+  def index = path("") {
+    getFromResource("web/index.html")
+  }
+  def staticJs = pathPrefix("dist") {
+    compressResponse() {
+      getFromResourceDirectory("web/dist")
+    }
+  }
+  def staticCss = pathPrefix("css") {
+    getFromResourceDirectory("web/css")
   }
 
   def rootRoute = index ~ staticJs ~ staticCss ~ upload

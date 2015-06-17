@@ -16,6 +16,9 @@ very flexible and descriptive way.
 
 Web UI built on top of Facebook's React.js framework and uses Gulp and Browserify for build.
 
+All development code stored in js directory.
+After build, concatenated and minified files will be stored in dist directory.
+
 For production-ready build you need to use gulp deploy task.
 
 For development you may want to split vendor (3rd-party libs) and bundle files.

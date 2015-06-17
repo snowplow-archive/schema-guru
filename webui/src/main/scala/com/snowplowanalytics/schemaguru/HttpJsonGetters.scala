@@ -33,33 +33,93 @@ trait HttpJsonGetters {
   def getErrorsAsJson(errors: List[String]): JValue =
     errors.map(parse(_))
 
+  /**
+   * Decide which data format (plain JSON or NDJSON) request contains and
+   * parse it with appropriate function
+   *
+   * @param data from HTTP-request
+   * @return list of JSON and errors
+   */
   def getJsonFromRequest(data: MultipartFormData): ValidJsonList = {
-    val proccessed = for {
+    val processed: Seq[ValidJsonList] = for {
       field <- data.fields
     } yield {
-        try {
-          val content = field.entity.data.asString
-          parse(content).success
-        } catch {
-          case e: JsonParseException => {
-            val details: JObject = ("error", "File contents failed to parse into JSON") ~ ("message", e.getMessage)
-            val error: JObject = field.name match {
-              case Some(name) => ("file", name) ~ details
-              case None       => ("file", "unknown") ~ details
-            }
-            compact(error).failure
-          }
-          case e: Exception => {
-            val details: JObject = ("error", "File fetching and parsing failed") ~ ("message", e.getMessage)
-            val error: JObject = field.name match {
-              case Some(name) => ("file", name) ~ details
-              case None       => ("file", "unknown") ~ details
-            }
-            compact(error).failure
-          }
+        val content = field.entity.data.asString
+        field.name match {
+          case Some(name) if name.endsWith(".json") => List(parseJson(content, field))
+          case _ => parseNDJson(content, field)
         }
       }
-    proccessed.toList
+    processed.toList.flatten
+  }
+
+  /**
+   * Parse string with one JSON instance
+   *
+   * @param in string with JSON instance
+   * @param field part of request to take file name from
+   * @return validation with either JValue or String with JSON error object
+   */
+  def parseJson(in: String, field: BodyPart): Validation[String, JValue] = {
+    try {
+      parse(in).success
+    } catch {
+      case e: JsonParseException => {
+        val details: JObject = ("error", "File contents failed to parse into JSON") ~
+                               ("message", e.getMessage)
+        val error: JObject = field.name match {
+          case Some(name) => ("file", name) ~ details
+          case None       => ("file", "unknown") ~ details
+        }
+        compact(error).failure
+      }
+      case e: Exception => {
+        val details: JObject = ("error", "File fetching and parsing failed") ~
+                               ("message", e.getMessage)
+        val error: JObject = field.name match {
+          case Some(name) => ("file", name) ~ details
+          case None       => ("file", "unknown") ~ details
+        }
+        compact(error).failure
+      }
+    }
+  }
+
+  /**
+   * Parse string with multiple JSON instances delimited with newline
+   *
+   * @param in string with JSON instances
+   * @param field part of request to take file name from
+   * @return list of validations with either JValue or JSON error as String
+   */
+  def parseNDJson(in: String, field: BodyPart): ValidJsonList = {
+    val jsons = for {
+      (json, line) <- in.split("\n").zipWithIndex
+    } yield {
+      try {
+        parse(json).success
+      } catch {
+        case e: JsonParseException => {
+          val details: JObject = ("error", s"File contents failed to parse into JSON on line $line") ~
+                                 ("message", e.getMessage)
+          val error: JObject = field.name match {
+            case Some(name) => ("file", name) ~ details
+            case None => ("file", "unknown") ~ details
+          }
+          compact(error).failure
+        }
+        case e: Exception => {
+          val details: JObject = ("error", s"File fetching and parsing failed on line $line") ~
+                                 ("message", e.getMessage)
+          val error: JObject = field.name match {
+            case Some(name) => ("file", name) ~ details
+            case None => ("file", "unknown") ~ details
+          }
+          compact(error).failure
+        }
+      }
+    }
+    jsons.toList
   }
 }
 

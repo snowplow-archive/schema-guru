@@ -18,7 +18,7 @@ import scalaz.Scalaz._
 import scalaz._
 
 // Scala
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 
 // Jackson
 import com.fasterxml.jackson.core.JsonParseException
@@ -28,17 +28,15 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 /**
- * Functions responsible for getting JValues (possible invalid)
- * from files, directories, etc
+ * Functions responsible for getting JValues (possible invalid) from files,
+ * directories, etc
  */
 trait FileSystemJsonGetters {
   /**
-   * Returns a validated List of JSONs from the folder it was
-   * pointed at.
+   * Returns a validated List of JSONs from the folder it was pointed at.
    *
    * @param dir The directory we are going to get JSONs from
-   * @param ext The extension of the file we are going to be
-   *        attempting to grab
+   * @param ext The extension of the file we are going to be attempting to grab
    * @return a List with validated JSONs nested inside
    */
   def getJsonsFromFolder(dir: String, ext: String = "json"): ValidJsonList = {
@@ -83,6 +81,59 @@ trait FileSystemJsonGetters {
         s"File [$filePath] fetching and parsing failed: [$exception]".failure
       }
     }
+  }
+
+  /**
+   * Returns a validated List of JSONs from newline-delimited JSON file
+   *
+   * @param filePath path to NDJSON
+   * @return a List with validated JSONs nested inside
+   */
+  def getJsonFromNDFile(filePath: String): ValidJsonList = {
+    val file: Validation[String, BufferedSource] = try {
+      Source.fromFile(filePath).success
+    } catch {
+      case e: Exception => {
+        val exception = e.getMessage
+        s"File [$filePath] fetching and parsing failed: [$exception]".failure
+      }
+    }
+
+    file match {
+      case Success(content) => {
+        val lines = content.mkString.split("\n").zipWithIndex
+        val processed =
+          for { (json, line) <- lines }
+          yield {
+            try { parse(json).success }
+            catch {
+              case e: Exception => {
+                val exception = e.getMessage
+                s"File [$filePath] failed to parse line $line into JSON: [$exception]".failure
+              }
+            }
+          }
+        processed.toList
+      }
+      case Failure(f) => List(f.failure)
+    }
+  }
+
+  /**
+   * Returns a validated List of JSONs from the folder with bunch of new-line
+   * delimited JSONS it was pointed at.
+   *
+   * @param dir The directory we are going to get JSONs from
+   * @param ext The extension of the file we are going to be attempting to grab
+   * @return a List with validated JSONs nested inside
+   */
+  def getJsonsFromFolderWithNDFiles(dir: String, ext: String = "ndjson"): ValidJsonList = {
+    val proccessed = for {
+      filePath <- new java.io.File(dir).listFiles.filter(_.getName.endsWith("." + ext))
+    } yield {
+        getJsonFromNDFile(filePath.getAbsolutePath)
+      }
+    proccessed.flatten.toList
   }
 }
 
