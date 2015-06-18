@@ -236,7 +236,8 @@ object JsonSchemaGenerator {
     def annotateString(value: String) =
       JsonSchemaType.StringT ~
       ("format", guessFormat(value, formatSuggestions)) ~
-      ("pattern", guessFormat(value, patternSuggestions))
+      ("pattern", guessFormat(value, patternSuggestions)) ~
+      ("enum", JArray(List(value)))
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce

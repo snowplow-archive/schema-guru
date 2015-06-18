@@ -43,8 +43,9 @@ object Main extends App with FileSystemJsonGetters {
 
   val directoryArgument = parser.option[String](List("dir"), "directory", "Directory which contains JSONs to be converted")
   val fileArgument = parser.option[String](List("file"), "file", "Single JSON instance to be converted")
-  val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
   val outputFileArgument = parser.option[String]("output", "file", "Output file")
+  val cardinalityArgument = parser.option[Int](List("enum"), "n", "Cardinality to evaluate enum property")
+  val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
 
   parser.parse(args)
 
@@ -72,12 +73,14 @@ object Main extends App with FileSystemJsonGetters {
     }
   }
 
+  val enumCardinality = cardinalityArgument.value.getOrElse(0)
+
   jsonList match {
     case Nil       => parser.usage("Directory does not contain any JSON files.")
     case someJsons => {
 
       // Upload JsonSchema
-      val result = SchemaGuru.convertsJsonsToSchema(someJsons)
+      val result = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
 
       // Print JsonSchema to file or stdout
       outputFileArgument.value match {

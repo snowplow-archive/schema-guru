@@ -28,10 +28,11 @@ object SchemaGuru {
    * Core function of Schema Guru
    *
    * @param list The Validated JSON list
+   * @param enumCardinality cardinality for detecting possible enums
    * @return the final JsonSchema
    */
   // TODO: Turn JsonSchemaGenerator into Akka Actor
-  def convertsJsonsToSchema(list: ValidJsonList): SchemaGuruResult = {
+  def convertsJsonsToSchema(list: ValidJsonList, enumCardinality: Int = 0): SchemaGuruResult = {
 
     // TODO: Throw error if goodJsons list is Nil
     val goodJsons = for {
@@ -44,7 +45,7 @@ object SchemaGuru {
       Failure(err) <- list
     } yield err
 
-    val schema = JSM.mergeJsonSchemas(goodJsons)  // Schema with aux info
+    val schema = JSM.mergeJsonSchemas(goodJsons, enumCardinality = enumCardinality)  // Schema with aux info
 
     val (finalSchema, warning) = SchemaWarning.splitSchemaAndWarnings(schema)
 

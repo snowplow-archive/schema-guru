@@ -20,10 +20,10 @@ import Scalaz._
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
 
-
+// This library
 import json.SchemaHelpers._
+
 
 /**
  * Takes a list of JsonSchemas and merges them together into
@@ -68,16 +68,17 @@ object JsonSchemaMerger {
    *
    * @param jsonSchemaList The list of Schemas which
    *        we want to merge
+   * @param enumCardinality cardinality for detecting possible enums
    * @return the cumulative JsonSchema
    */
   // TODO: handle case where _starting_ List is empty (see: reduceLeftOption above)
-  def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil): JValue =
+  def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil, enumCardinality: Int = 0): JValue =
     jsonSchemaList match {
       case x :: xs => {
         val annotatedAcc = LevenshteinAnnotator.addPossibleDuplicates(x, accum)
         mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(annotatedAcc))
       }
-      case Nil     => reduceMergedSchema(accum)
+      case Nil     => reduceMergedSchema(accum, enumCardinality)
     }
 
   /**
@@ -100,7 +101,7 @@ object JsonSchemaMerger {
       case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
 
       case ("format", JString(f))   => ("format", JArray(List(f)))
-      case ("pattern", JString(f))   => ("pattern", JArray(List(f)))
+      case ("pattern", JString(f))  => ("pattern", JArray(List(f)))
 
       case ("items", JArray(items)) => ("items", mergeJsonSchemas(items))
     }
@@ -116,9 +117,10 @@ object JsonSchemaMerger {
    *      "maximum" : [0, 10] -> "maximum" : 10
    *
    * @param jsonSchema The Schema we now want to reduce
+   * @param enumCardinality cardinality for detecting possible enums
    * @return the reduced JsonSchema ready for publishing
    */
-  def reduceMergedSchema(jsonSchema: JValue): JValue =
+  def reduceMergedSchema(jsonSchema: JValue, enumCardinality: Int = 0): JValue = {
     jsonSchema transformField {
       case ("type", JArray(list)) =>
         ("type", list match {
@@ -131,5 +133,7 @@ object JsonSchemaMerger {
                                   map(reduceNumberFieldRange)
                                   map(reduceStringFieldFormat)
                                   map(reduceStringFieldPattern))
+      case ("enum", JArray(list)) if list.length > enumCardinality => ("enum", JNothing) // delete it
     }
+  }
 }

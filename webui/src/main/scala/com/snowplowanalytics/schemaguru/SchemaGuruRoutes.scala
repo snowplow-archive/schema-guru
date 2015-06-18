@@ -35,6 +35,7 @@ trait SchemaGuruRoutes extends HttpService with HttpJsonGetters {
             detach() {
               complete {
                 val jsons: ValidJsonList = getJsonFromRequest(formData)
+                // TODO: add enum cardinality here
                 val result = SchemaGuru.convertsJsonsToSchema(jsons)
                 val errors = getErrorsAsJson(result.errors)
                 compact(
