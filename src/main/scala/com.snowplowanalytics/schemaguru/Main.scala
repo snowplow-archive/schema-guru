@@ -12,6 +12,9 @@
  */
 package com.snowplowanalytics.schemaguru
 
+// Java
+import java.nio.file.{Files, Paths}
+
 // Scalaz
 import scalaz._
 import Scalaz._
@@ -44,6 +47,15 @@ object Main extends App with FileSystemJsonGetters {
   val outputFileArgument = parser.option[String]("output", "file", "Output file")
 
   parser.parse(args)
+
+  // Check whether provided path exists
+  List(directoryArgument.value, fileArgument.value).flatten.headOption match {
+    case None => parser.usage("either --dir or --file argument must be provided")
+    case Some(path) => {
+      if (Files.exists(Paths.get(path))) ()  // everything is OK
+      else parser.usage(s"Path $path does exists")
+    }
+  }
 
   // Decide where and which files should be parsed
   val jsonList: ValidJsonList = directoryArgument.value match {
