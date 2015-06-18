@@ -70,6 +70,19 @@ td {
     background-color: #f7f7f7;
 }
 
+.options {
+    margin-bottom: 12px;
+}
+
+.options-value {
+    margin-right: 10px;
+    width: 30px;
+}
+
+.options-title {
+    font-size: 14px;
+}
+
 .schema {
     float: right;
     width: 48%;

@@ -72,14 +72,16 @@ object JsonSchemaMerger {
    * @return the cumulative JsonSchema
    */
   // TODO: handle case where _starting_ List is empty (see: reduceLeftOption above)
-  def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil, enumCardinality: Int = 0): JValue =
+  def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil, enumCardinality: Int = 0): JValue = {
     jsonSchemaList match {
       case x :: xs => {
         val annotatedAcc = LevenshteinAnnotator.addPossibleDuplicates(x, accum)
-        mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(annotatedAcc))
+        mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(annotatedAcc), enumCardinality)
       }
       case Nil     => reduceMergedSchema(accum, enumCardinality)
     }
+  }
+
 
   /**
    * Transforms the type descriptor for every key

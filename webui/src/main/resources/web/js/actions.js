@@ -26,5 +26,6 @@ module.exports = Reflux.createActions([
     "addErrors",                // we received some errors
     "addWarning",               // we received warning
     "viewShowDiff",             // something wants to look at diff
-    "viewShowPlain"             // something wants to look at plain schema
+    "viewShowPlain",            // something wants to look at plain schema
+    "enumCardinalityChanged"    // input with enum cardinality changed
 ]);

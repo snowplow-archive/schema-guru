@@ -22,7 +22,7 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
-trait SchemaGuruRoutes extends HttpService with HttpJsonGetters {
+trait SchemaGuruRoutes extends HttpService with HttpJsonGetters with HttpOptionsGetter {
   /**
    * Pipe route to ``convertsToJsonToSchema`` core function
    * Accept POST request with JSON files
@@ -35,8 +35,8 @@ trait SchemaGuruRoutes extends HttpService with HttpJsonGetters {
             detach() {
               complete {
                 val jsons: ValidJsonList = getJsonFromRequest(formData)
-                // TODO: add enum cardinality here
-                val result = SchemaGuru.convertsJsonsToSchema(jsons)
+                val cardinality = getCardinality(formData)
+                val result = SchemaGuru.convertsJsonsToSchema(jsons, cardinality)
                 val errors = getErrorsAsJson(result.errors)
                 compact(
                   (("status", "processed"): JObject) ~

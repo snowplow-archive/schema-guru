@@ -28,6 +28,7 @@ module.exports = Reflux.createStore({
     listenables: GuruActions,
 
     textInstanceCounter: 0, // private auxiliary counter
+    enumCardinality: 0,     // value of enum cardinality tolerance
     instances: [],          // list of File object with some additional attributes
                             // TODO: consider changing array to object
                             // TODO: find a place to maintain these mutable attributes
@@ -45,7 +46,8 @@ module.exports = Reflux.createStore({
     postInstances: function(instances) {
         var req = request.post('/upload');
         instances.forEach(file => req.attach(file.name, file));
-        req.end(GuruActions.schemaReceived);
+        req.field('enumCardinality', this.enumCardinality)
+           .end(GuruActions.schemaReceived);
     },
 
     /**
@@ -123,5 +125,14 @@ module.exports = Reflux.createStore({
         this.textInstanceCounter += 1;
         var file = new File([value], "text_instance_" + this.textInstanceCounter + ".json");
         GuruActions.instancesAdded([file])
+    },
+
+    /**
+     * Handle enumCardinalityChanged event
+     * Set InstanceStore's private var
+     * @param cardinality
+     */
+    onEnumCardinalityChanged: function(cardinality) {
+        this.enumCardinality = cardinality;
     }
 });

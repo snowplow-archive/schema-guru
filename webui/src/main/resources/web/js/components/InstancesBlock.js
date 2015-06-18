@@ -20,6 +20,7 @@ var Dropzone = require('react-dropzone');
 var GuruActions = require('../actions');
 var InstanceList = require('./InstanceList');
 var JsonInput = require('./JsonInput');
+var Options = require('./Options');
 
 /**
  * Whole left side
@@ -62,6 +63,7 @@ module.exports = React.createClass({
                             { this.state.dragging === true ? "I hope it is not a Bluray rip" : this.state.message }
                         </div>
                     </Dropzone>
+                    <Options />
 
                     <JsonInput />
                     <InstanceList instances={this.props.instances} />
