@@ -217,11 +217,11 @@ object JsonSchemaGenerator {
      * @return some format or none if nothing suites
      */
     @tailrec
-    def guessFormat(value: String, suggestions: List[String => Option[String]]): String = {
+    def guessFormat(value: String, suggestions: List[String => Option[String]]): Option[String] = {
       suggestions match {
-        case Nil => "none"
+        case Nil => None
         case suggestion :: tail => suggestion(value) match {
-          case Some(format) => format
+          case Some(format) => Some(format)
           case None => guessFormat(value, tail)
         }
       }

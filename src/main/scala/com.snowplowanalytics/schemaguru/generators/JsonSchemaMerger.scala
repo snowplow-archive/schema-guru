@@ -20,6 +20,7 @@ import Scalaz._
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods.pretty
 
 // This library
 import json.SchemaHelpers._
@@ -103,7 +104,10 @@ object JsonSchemaMerger {
       case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
 
       case ("format", JString(f))   => ("format", JArray(List(f)))
+      case ("format", JNothing)     => ("format", JArray(List(JNothing)))
+
       case ("pattern", JString(f))  => ("pattern", JArray(List(f)))
+      case ("pattern", JNothing)    => ("pattern", JArray(List(JNothing)))
 
       case ("items", JArray(items)) => ("items", mergeJsonSchemas(items))
     }
@@ -133,9 +137,10 @@ object JsonSchemaMerger {
       case ("properties", properties) =>
         ("properties", properties map(reduceIntegerFieldRange)
                                   map(reduceNumberFieldRange)
-                                  map(reduceStringFieldFormat)
-                                  map(reduceStringFieldPattern))
-      case ("enum", JArray(list)) if list.length > enumCardinality => ("enum", JNothing) // delete it
+                                  map(reduceStringField("format"))
+                                  map(reduceStringField("pattern")))
+      case ("enum", JArray(list)) if list.length > enumCardinality =>
+        ("enum", JNothing) // delete it
     }
   }
 }

@@ -47,7 +47,7 @@ class MergeSpecification extends Specification { def is = s2"""
 
   val jObjectWithUuid: JObject = ("properties", ("test_key", StringT ~ ("format", JString("uuid"))))
   val jObjectWithDateTime: JObject = ("properties", ("test_key", StringT ~ ("format", JString("date-time"))))
-  val jObjectWithoutFormat: JObject = ("properties", ("test_key", StringT ~ ("format", JString("none"))))
+  val jObjectWithoutFormat: JObject = ("properties", ("test_key", StringT ~ ("format", None)))
 
   def maintainTypesInArray = {
     val merged = mergeJsonSchemas(List(StringT, StringT, StringT, IntegerT, StringT))
