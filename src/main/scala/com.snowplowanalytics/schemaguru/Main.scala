@@ -13,11 +13,8 @@
 package com.snowplowanalytics.schemaguru
 
 // Java
+import java.io.File
 import java.nio.file.{Files, Paths}
-
-// Scalaz
-import scalaz._
-import Scalaz._
 
 // json4s
 import org.json4s._
@@ -28,7 +25,7 @@ import org.clapper.argot._
 import org.clapper.argot.ArgotConverters._
 
 // This library
-import utils.FileSystemJsonGetters
+import utils._
 
 object Main extends App with FileSystemJsonGetters {
   val parser = new ArgotParser(
@@ -46,8 +43,19 @@ object Main extends App with FileSystemJsonGetters {
   val outputFileArgument = parser.option[String]("output", "file", "Output file")
   val cardinalityArgument = parser.option[Int](List("enum"), "n", "Cardinality to evaluate enum property")
   val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
+  val schemaByArgument = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
+  val outputDirArgument = parser.option[String](List("output-dir"), "directory", "Directory path for multiple Schemas")
 
   parser.parse(args)
+
+  // Get arguments for JSON Path segmentation and validate it
+  val segmentSchema = (schemaByArgument.value, outputDirArgument.value) match {
+    case (Some(jsonPath), Some(dirPath)) => Some((jsonPath, dirPath))
+    case (None, None)                    => None
+    case _                               => parser.usage("--schema-by and --output-dir arguments need to be used in conjunction")
+  }
+
+  val enumCardinality = cardinalityArgument.value.getOrElse(0)
 
   // Check whether provided path exists
   List(directoryArgument.value, fileArgument.value).flatten.headOption match {
@@ -73,35 +81,55 @@ object Main extends App with FileSystemJsonGetters {
     }
   }
 
-  val enumCardinality = cardinalityArgument.value.getOrElse(0)
-
   jsonList match {
-    case Nil       => parser.usage("Directory does not contain any JSON files.")
+    case Nil => parser.usage("Directory does not contain any JSON files.")
     case someJsons => {
-
-      // Upload JsonSchema
-      val result = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
-
-      // Print JsonSchema to file or stdout
-      outputFileArgument.value match {
-        case Some(file) => {
-          val output = new java.io.PrintWriter(file)
-          output.write(pretty(render(result.schema)))
-          output.close()
+      segmentSchema match {
+        case None => {
+          val result = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
+          outputResult(result, outputFileArgument.value)
         }
-        case None => println(pretty(render(result.schema)))
+        case Some((path, dir)) => {
+          val nameToJsonsMapping = JsonPathExtractor.mapByPath(path, jsonList)
+          nameToJsonsMapping map {
+            case (key, jsons) => {
+              val result = SchemaGuru.convertsJsonsToSchema(jsons, enumCardinality)
+              val fileName = key + ".json"
+              val file =
+                if (key == "$SchemaGuruFailed") None
+                else Some(new File(dir, fileName).getAbsolutePath)
+              outputResult(result, file)
+            }
+          }
+        }
       }
+    }
+  }
 
-      // Print errors
-      if (!result.errors.isEmpty) {
-        println("\nErrors:\n " + result.errors.mkString("\n"))
+  /**
+   * Prints Schema, warnings and errors
+   * @param result Schema Guru result containing all information
+   */
+  def outputResult(result: SchemaGuruResult, outputFile: Option[String]): Unit = {
+    // Print JsonSchema to file or stdout
+    outputFile match {
+      case Some(file) => {
+        val output = new java.io.PrintWriter(file)
+        output.write(pretty(render(result.schema)))
+        output.close()
       }
+      case None       => println(pretty(render(result.schema)))
+    }
 
-      // Print warnings
-      result.warning match {
-        case Some(warning) => println("\n" + warning.consoleMessage)
-        case _ =>
-      }
+    // Print errors
+    if (!result.errors.isEmpty) {
+      println("\nErrors:\n " + result.errors.mkString("\n"))
+    }
+
+    // Print warnings
+    result.warning match {
+      case Some(warning) => println(warning.consoleMessage)
+      case _ =>
     }
   }
 }
