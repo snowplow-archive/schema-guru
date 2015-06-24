@@ -14,7 +14,6 @@ package com.snowplowanalytics.schemaguru
 package json
 
 // json4s
-
 import org.json4s._
 import org.json4s.JsonDSL._
 

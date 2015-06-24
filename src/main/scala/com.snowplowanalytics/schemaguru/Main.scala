@@ -46,20 +46,42 @@ object Main extends App with FileSystemJsonGetters {
   val schemaByArgument = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
   val outputDirArgument = parser.option[String](List("output-dir"), "directory", "Directory path for multiple Schemas")
 
+  // self-describing schema arguments
+  val vendorArgument = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
+  val nameArgument = parser.option[String](List("name"), "name", "Schema name for self-describing schema")
+  val versionArgument = parser.option[String](List("schemaver"), "version", "Schema version (in SchemaVer format) for self-describing schema")
+
+
   parser.parse(args)
 
-  // Get arguments for JSON Path segmentation and validate it
+  // Get arguments for JSON Path segmentation and validate them
   val segmentSchema = (schemaByArgument.value, outputDirArgument.value) match {
     case (Some(jsonPath), Some(dirPath)) => Some((jsonPath, dirPath))
-    case (None, None)                    => None
-    case _                               => parser.usage("--schema-by and --output-dir arguments need to be used in conjunction")
+    case (None, None) => None
+    case _ => parser.usage("--schema-by and --output-dir arguments need to be used in conjunction.")
+  }
+
+  // Get arguments for self-describing schema and validate them
+  val selfDescribing = (vendorArgument.value, nameArgument.value, versionArgument.value) match {
+    case (Some(vendor), Some(name), version) => {
+      if (!vendor.matches("([A-Za-z0-9\\-\\_\\.]+)")) {
+        parser.usage("--vendor argument must consist of only letters, numbers, hyphens, underscores and dots")
+      } else if (!name.matches("([A-Za-z0-9\\-\\_]+)")) {
+        parser.usage("--name argument must consist of only letters, numbers, hyphens and underscores")
+      } else if (version.isDefined && !version.get.matches("\\d+\\-\\d+\\-\\d+")) {
+        parser.usage("--schemaver argument must be in SchemaVer format (example: 1-1-0)")
+      }
+      Some(SelfDescribingSchema(vendor, name, version))
+    }
+    case (None, None, None) => None
+    case _  => parser.usage("--vendor, --name and --schemaver arguments need to be used in conjunction.")
   }
 
   val enumCardinality = cardinalityArgument.value.getOrElse(0)
 
   // Check whether provided path exists
   List(directoryArgument.value, fileArgument.value).flatten.headOption match {
-    case None => parser.usage("either --dir or --file argument must be provided")
+    case None => parser.usage("Either --dir or --file argument must be provided.")
     case Some(path) => {
       if (Files.exists(Paths.get(path))) ()  // everything is OK
       else parser.usage(s"Path $path does exists")
@@ -73,7 +95,7 @@ object Main extends App with FileSystemJsonGetters {
       case _          => getJsonsFromFolder(dir)
     }
     case None      => fileArgument.value match {
-      case None       => parser.usage("either --dir or --file argument must be provided")
+      case None       => parser.usage("Either --dir or --file argument must be provided.")
       case Some(file) => ndjsonFlag.value match {
         case Some(true) => getJsonFromNDFile(file)
         case _          => List(getJsonFromFile(file))
@@ -87,7 +109,7 @@ object Main extends App with FileSystemJsonGetters {
       segmentSchema match {
         case None => {
           val result = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
-          outputResult(result, outputFileArgument.value)
+          outputResult(result, outputFileArgument.value, selfDescribing)
         }
         case Some((path, dir)) => {
           val nameToJsonsMapping = JsonPathExtractor.mapByPath(path, jsonList)
@@ -98,7 +120,7 @@ object Main extends App with FileSystemJsonGetters {
               val file =
                 if (key == "$SchemaGuruFailed") None
                 else Some(new File(dir, fileName).getAbsolutePath)
-              outputResult(result, file)
+              outputResult(result, file, selfDescribing)
             }
           }
         }
@@ -107,18 +129,27 @@ object Main extends App with FileSystemJsonGetters {
   }
 
   /**
-   * Prints Schema, warnings and errors
+   * Print Schema, warnings and errors
+   *
    * @param result Schema Guru result containing all information
+   * @param outputFile optional path to file for schema output
+   * @param selfDescribingInfo optional info to make shema self-describing
    */
-  def outputResult(result: SchemaGuruResult, outputFile: Option[String]): Unit = {
+  def outputResult(result: SchemaGuruResult, outputFile: Option[String], selfDescribingInfo: Option[SelfDescribingSchema]): Unit = {
+    // Make schema self-describing if necessary
+    val schema: JValue = selfDescribingInfo match {
+      case None => result.schema
+      case Some(description) => description.descriptSchema(result.schema)
+    }
+
     // Print JsonSchema to file or stdout
     outputFile match {
       case Some(file) => {
         val output = new java.io.PrintWriter(file)
-        output.write(pretty(render(result.schema)))
+        output.write(pretty(render(schema)))
         output.close()
       }
-      case None       => println(pretty(render(result.schema)))
+      case None => println(pretty(render(schema)))
     }
 
     // Print errors

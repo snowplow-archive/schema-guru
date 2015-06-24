@@ -30,8 +30,14 @@ object JsonPathExtractor {
 
   val mapper = new ObjectMapper
 
-  def parseJson(s: String) =
-    mapper.readValue(s, classOf[Object])
+  /**
+   * Parse JSON string as raw JVM object to work with jackson
+   *
+   * @param json string containing JSON
+   * @return raw JVM object representing JSON
+   */
+  def parseJson(json: String): Object =
+    mapper.readValue(json, classOf[Object])
 
   /**
    * Add default values for some exceptional cases and
@@ -46,11 +52,11 @@ object JsonPathExtractor {
       val key = try {
         str.toString
       } catch {
-        case _: NullPointerException => "null"
+        case _: NullPointerException => "unmatched"
       }
-      if (key.trim.length == 0) "Empty"
+      if (key.trim.length == 0) "unmatched"
       else key.slice(0, 30).replaceAll("[^a-zA-Z0-9.-]", "_")
-    case None => "NoSuchPath"
+    case None => "unmatched"
   }
   
 

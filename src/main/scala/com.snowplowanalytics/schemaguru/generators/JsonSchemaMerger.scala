@@ -20,7 +20,6 @@ import Scalaz._
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods.pretty
 
 // This library
 import json.SchemaHelpers._
