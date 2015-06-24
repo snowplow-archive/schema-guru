@@ -73,9 +73,24 @@ object BuildSettings {
     mainClass in assembly := Some("com.snowplowanalytics.schemaguru.Main")
   )
 
+  val gulpDeployTask = TaskKey[Unit]("gulpDeploy", "Build Web UI")
+  val gulpDeploySettings = Seq(gulpDeployTask := {
+    sys.process.Process(Seq("npm", "install"), new java.io.File("webui")).!!
+    sys.process.Process(Seq("gulp", "deploy"), new java.io.File("webui/src/main/resources/web")).!!
+  })
+
+
   lazy val coreBuildSettings =
     commonSettings ++
     coreSettings ++
     scalifySettings ++
     sbtAssemblyCoreSettings
+
+  lazy val webuiBuildSettings =
+    commonSettings ++
+    webuiSettings ++
+    gulpDeploySettings ++
+    scalifySettings ++
+    sbtAssemblyWebuiSettings ++
+    Revolver.settings
 }

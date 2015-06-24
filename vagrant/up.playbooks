@@ -1,3 +1,5 @@
 oss-playbooks/java7.yml
 oss-playbooks/scala.yml
 oss-playbooks/sbt.yml
+oss-playbooks/nodejs.yml
+oss-playbooks/gulp.yml
