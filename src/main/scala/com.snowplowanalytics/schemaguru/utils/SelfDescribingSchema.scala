@@ -16,7 +16,7 @@ package com.snowplowanalytics.schemaguru.utils
 import org.json4s._
 import org.json4s.JsonDSL._
 
-case class SelfDescribingSchema(vendor: String, name: String, version: Option[String]) {
+case class SelfDescribingSchema(vendor: String, name: Option[String], version: Option[String]) {
   val selfDescribingSchemaURI = "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#"
 
   def descriptSchema(schema: JValue): JValue = {
@@ -24,7 +24,7 @@ case class SelfDescribingSchema(vendor: String, name: String, version: Option[St
 
     val selfObject: JObject = ("self",
       ("vendor", vendor) ~
-      ("name", name) ~
+      ("name", name.getOrElse("unspecified")) ~
       ("version", version.getOrElse("0-1-0")) ~
       ("format", "jsonschema"))
 

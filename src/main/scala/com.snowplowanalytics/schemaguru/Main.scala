@@ -63,10 +63,15 @@ object Main extends App with FileSystemJsonGetters {
 
   // Get arguments for self-describing schema and validate them
   val selfDescribing = (vendorArgument.value, nameArgument.value, versionArgument.value) match {
-    case (Some(vendor), Some(name), version) => {
+    case (Some(vendor), name, version) => {
+      name match {
+        case None if (!segmentSchema.isDefined)   => parser.usage("You need to specify --name OR segment schema.")
+        case Some(_) if (segmentSchema.isDefined) => parser.usage("You need to specify --name OR segment schema.")
+        case _ => ()    // we can omit name, but it must be
+      }
       if (!vendor.matches("([A-Za-z0-9\\-\\_\\.]+)")) {
         parser.usage("--vendor argument must consist of only letters, numbers, hyphens, underscores and dots")
-      } else if (!name.matches("([A-Za-z0-9\\-\\_]+)")) {
+      } else if (name.isDefined && !name.get.matches("([A-Za-z0-9\\-\\_]+)")) {
         parser.usage("--name argument must consist of only letters, numbers, hyphens and underscores")
       } else if (version.isDefined && !version.get.matches("\\d+\\-\\d+\\-\\d+")) {
         parser.usage("--schemaver argument must be in SchemaVer format (example: 1-1-0)")
@@ -120,7 +125,7 @@ object Main extends App with FileSystemJsonGetters {
               val file =
                 if (key == "$SchemaGuruFailed") None
                 else Some(new File(dir, fileName).getAbsolutePath)
-              outputResult(result, file, selfDescribing)
+              outputResult(result, file, selfDescribing.map(_.copy(name = Some(key))))
             }
           }
         }
