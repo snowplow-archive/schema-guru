@@ -23,7 +23,7 @@ import org.specs2.Specification
 // This project
 import JsonSchemaMerger.mergeJsonSchemas
 
-class MergeSpecification extends Specification { def is = s2"""
+class MergeSpec extends Specification { def is = s2"""
   Check integer merge
     maintain all types in array                            $maintainTypesInArray
     merge maximum values                                   $mergeMaximumValues

@@ -16,12 +16,13 @@ package generators
 // json4s
 import org.json4s._
 
+// specs2
 import org.specs2.Specification
 
 // This project
 import JsonSchemaGenerator.Annotations
 
-class StringFormatAnnotationSpecification extends Specification { def is = s2"""
+class StringFormatAnnotationSpec extends Specification { def is = s2"""
   Check string type annotations
     recognize UUID                            $recognizeUuid
     recognize ISO date                        $recognizeIsoDate
