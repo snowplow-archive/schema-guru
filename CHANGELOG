@@ -2,6 +2,12 @@
 ------------------------
 Web UI (#39)
 Embed Spray server (#53)
+Added warning about possibly misspelt keys (#31)
+Support of newline-delimited JSON (#56)
+Detect field contains base64 and add corresponding pattern (#58)
+New --enum option to specify enum cardinality tolerance (#36)
+Ability to segment JSONs with content of specified JSON Path (#48)
+Self-describing Schema (#17)
 
 0.1.0 (2015-06-03)
 ------------------
