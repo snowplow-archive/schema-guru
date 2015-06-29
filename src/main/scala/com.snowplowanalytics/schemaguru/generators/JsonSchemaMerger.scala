@@ -82,7 +82,6 @@ object JsonSchemaMerger {
     }
   }
 
-
   /**
    * Transforms the type descriptor for every key
    * in the JsonSchema into an array so that we

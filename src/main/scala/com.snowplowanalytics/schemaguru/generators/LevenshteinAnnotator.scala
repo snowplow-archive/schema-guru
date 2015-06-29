@@ -10,7 +10,8 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.schemaguru.generators
+package com.snowplowanalytics.schemaguru
+package generators
 
 // Scala
 import scala.math.min
@@ -23,15 +24,18 @@ object LevenshteinAnnotator {
   /**
    * Alias type for set of string pairs
    */
-  type KeyPairs = Set[Pair[String, String]]
+  type KeyPairs = Set[(String, String)]
 
-  // Strings shorter than thresholdLength do not comparing
+  // Strings shorter than thresholdLength are not compared
   val thresholdLength = 3
 
-  val thresholdDistance = 3
+  // Pair of strings which uniform representation (see below) forms has
+  // distance less than thresholdDistance can be considered as probably
+  // duplicated
+  val thresholdDistance = 1
 
   /**
-   * Actual Levenshtein distance function.
+   * Levenshtein distance function.
    * Measuring the difference between two sequences (strings in our case)
    *
    * @param a first sequence
@@ -75,7 +79,7 @@ object LevenshteinAnnotator {
     val accKeys = SchemaType.getFrom(accum).map(_.extractAllKeys)
     val closePairs = (schKeys, accKeys) match {
       case (Some(s), Some(a)) => compareSets(s, a)
-      case _ => Set.empty[Pair[String, String]]
+      case _ => Set.empty[(String, String)]
     }
 
     accum match {
@@ -88,8 +92,8 @@ object LevenshteinAnnotator {
   }
 
   /**
-   * Helper function for producing all possible pairs
-   * for Strings with length > ``thresholdLength``
+   * Helper function for producing all possible pairs for Strings with
+   * length > ``thresholdLength``
    * Ex: (a, b),(d, e) = (a,d),(a,e)(b,d),(b,e)
    *
    * @param xs set of strings
@@ -105,16 +109,38 @@ object LevenshteinAnnotator {
   }
 
   /**
+   * Eliminates all underscores and hyphens and lowercase whole string
+   * to handle special cases like sameKey same_key
+   *
+   * @param string string to be transformed
+   * @return lowercased string without some special characters
+   */
+  def uniformString(string: String): String = {
+    string.replaceAll("[\\-,\\_]", "").toLowerCase
+  }
+
+  /**
    * Calculate Levenshtein for all possible combinations of elements of two sets
+   * and returns pairs which are seems similar
+   *
    * @param schKeys first set
    * @param accKeys second set
    * @return pairs which distance threshold is lower than specified
    */
   def compareSets(schKeys: Set[String], accKeys: Set[String]): KeyPairs = {
     crossProduct(schKeys, accKeys).flatMap { case (first, second) => {
-      val distance = calculateDistance(first, second)
-      if (distance == 0 || distance > thresholdDistance) Set.empty[Pair[String, String]]
-      else Set((first, second))
+      if (first != second) {
+        val uniformedFirst = uniformString(first)
+        val uniformedSecond = uniformString(second)
+        val distance = calculateDistance(uniformedFirst, uniformedSecond)
+        if (distance <= thresholdDistance) {
+          Set((first, second))
+        } else {
+          Set.empty[(String, String)]
+        }
+      } else {
+        Set.empty[(String, String)]
+      }
     }}
   }
 }

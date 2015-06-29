@@ -62,6 +62,7 @@ object SchemaGuruBuild extends Build {
         Libraries.sprayCan,
         Libraries.sprayRouting,
         // Scala (test only)
+        Libraries.specs2,
         Libraries.sprayTestkit
       )
     )

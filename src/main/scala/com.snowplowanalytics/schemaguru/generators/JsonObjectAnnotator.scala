@@ -10,7 +10,8 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.schemaguru.generators
+package com.snowplowanalytics.schemaguru
+package generators
 
 // json4s
 import org.json4s._
@@ -44,7 +45,7 @@ sealed trait SchemaType {
 
   /**
    * Recursively extract all keys and subkeys from all objects in JSON schema
-   * @return
+   * @return set of all keys that object contains
    */
   def extractAllKeys: Set[String] = {
     if (this.isLeaf)  Set.empty[String]
@@ -59,7 +60,9 @@ sealed trait SchemaType {
  */
 object SchemaType extends SchemaHelper {
   /**
-   * Extract ``SchemaType`` from JValue
+   * First try to extract schema for object type, if not found try to extract
+   * primitive type
+   *
    * @param json Object describing JSON Schema type
    * @return
    */
@@ -83,6 +86,7 @@ case class PrimitiveType(`type`: JValue) extends SchemaType {
 
 /**
  * Container type for all object types
+ *
  * @param properties map key to JObject, where JObject can probably contain
  *                   JSON Schema ``PrimitiveType`` or another ``ObjectType``
  * @param additionalProperties currently always false

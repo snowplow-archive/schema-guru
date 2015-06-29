@@ -13,10 +13,6 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
-// Scalaz
-import scalaz._
-import Scalaz._
-
 // Scala
 import scala.annotation.tailrec
 
@@ -31,7 +27,6 @@ import org.joda.time.DateTime
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
 
 /**
  * Takes a JSON and converts it into a JsonSchema.
@@ -241,21 +236,32 @@ object JsonSchemaGenerator {
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce
+     * Add itself to enum array
      */
     def annotateInteger(value: BigInt) =
-      JsonSchemaType.IntegerT ~ ("minimum", value) ~ ("maximum", value)
+      JsonSchemaType.IntegerT ~
+      ("minimum", value) ~
+      ("maximum", value) ~
+      ("enum", JArray(List(value)))
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
+     * Add itself to enum array
      */
     def annotateDecimal(value: BigDecimal) =
-      JsonSchemaType.DecimalT ~ ("minimum", value)
+      JsonSchemaType.DecimalT ~
+      ("minimum", value) ~
+      ("enum", JArray(List(value)))
+
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
+     * Add itself to enum array
      */
     def annotateDouble(value: Double) =
-      JsonSchemaType.DoubleT ~ ("minimum", value)
+      JsonSchemaType.DoubleT ~
+      ("minimum", value) ~
+      ("enum", JArray(List(value)))
   }
 }
 

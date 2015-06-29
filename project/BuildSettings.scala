@@ -20,7 +20,7 @@ object BuildSettings {
   // Common settings for all our projects
   lazy val commonSettings = Seq[Setting[_]](
     organization          :=  "com.snowplowanalytics",
-    version               :=  "0.2.0-M1",
+    version               :=  "0.2.0",
     scalaVersion          :=  "2.10.5",
     crossScalaVersions    :=  Seq("2.10.5", "2.11.6"),
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
@@ -73,24 +73,9 @@ object BuildSettings {
     mainClass in assembly := Some("com.snowplowanalytics.schemaguru.Main")
   )
 
-  val gulpDeployTask = TaskKey[Unit]("gulpDeploy", "Build Web UI")
-  val gulpDeploySettings = Seq(gulpDeployTask := {
-    sys.process.Process(Seq("npm", "install"), new java.io.File("webui")).!!
-    sys.process.Process(Seq("gulp", "deploy"), new java.io.File("webui/src/main/resources/web")).!!
-  })
-
-
   lazy val coreBuildSettings =
     commonSettings ++
     coreSettings ++
     scalifySettings ++
     sbtAssemblyCoreSettings
-
-  lazy val webuiBuildSettings =
-    commonSettings ++
-    webuiSettings ++
-    gulpDeploySettings ++
-    scalifySettings ++
-    sbtAssemblyWebuiSettings ++
-    Revolver.settings
 }

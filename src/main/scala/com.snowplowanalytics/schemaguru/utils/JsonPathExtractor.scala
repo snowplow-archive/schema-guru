@@ -10,7 +10,8 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.schemaguru.utils
+package com.snowplowanalytics.schemaguru
+package utils
 
 // scalaz
 import scalaz._
@@ -22,9 +23,6 @@ import io.gatling.jsonpath.JsonPath
 
 // json4s
 import org.json4s.jackson.JsonMethods.compact
-
-// This library
-import com.snowplowanalytics.schemaguru.ValidJsonList
 
 object JsonPathExtractor {
 
@@ -63,7 +61,6 @@ object JsonPathExtractor {
   /**
    * Maps content of specified JSON Path to List of JSONs which contains same
    * content
-   * Currently function just throw away JSONs which failed to parse
    *
    * @param jsonPath valid JSON Path
    * @param jsonList the validated JSON list
