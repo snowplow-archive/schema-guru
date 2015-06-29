@@ -1,0 +1,11 @@
+{
+    "AWSEBDockerrunVersion": "1",
+        "Image": {
+            "Name": "java:7"
+        },
+        "Ports": [
+        { 
+            "ContainerPort": "8000"
+        }
+    ]
+}

@@ -75,6 +75,19 @@ $ ./schema-guru-webui-0.2.0
 It will run Spray web server on 0.0.0.0:8000.
 Interface and port can be specified by --interface and --port respectively.
 
+### AWS Elastic Beanstalk
+
+You can deploy Schema Guru Web UI on AWS cloud.
+All you need for that is contained inside beanstalk directory.
+You need to zip these files:
+
+```bash
+$ cd beanstalk
+$ zip my_webui.zip *
+```
+
+Now just create new Docker app in [Elastic Beanstalk Console] [beanstalk-console] and upload this zip archive.
+
 ## User Manual
 
 ### Functionality
@@ -258,3 +271,5 @@ limitations under the License.
 
 [vagrant-install]: http://docs.vagrantup.com/v2/installation/index.html
 [virtualbox-install]: https://www.virtualbox.org/wiki/Downloads
+
+[beanstalk-console]: http://console.aws.amazon.com/elasticbeanstalk
