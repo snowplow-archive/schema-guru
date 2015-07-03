@@ -3,7 +3,6 @@ set -e
 
 # Constants
 bintray_package=schema-guru
-bintray_artifact_prefix=schema_guru_
 bintray_user=snowplowbot
 bintray_repository=snowplow/snowplow-generic
 scala_version=2.10
@@ -71,11 +70,17 @@ function cd_root() {
 }
 
 # Assemble our fat jars
+#
+# Parameters:
+# 1. project_name
 function assemble_fatjar() {
+    [ "$#" -eq 1 ] || die "1 arguments required, $# provided"
+    local __project_name=$1
+
 	echo "================================================"
 	echo "ASSEMBLING FATJAR"
 	echo "------------------------------------------------"
-	vagrant ssh -c "cd ${guest_repo_path} && sbt assembly"
+	vagrant ssh -c "cd ${guest_repo_path} && sbt \"project ${__project_name}\" assembly"
 }
 
 # Create our version in BinTray. Does nothing
@@ -114,15 +119,19 @@ function create_bintray_package() {
 #
 # Parameters:
 # 1. artifact_version
-# 2. out_artifact_name (out parameter)
-# 3. out_artifact_[atj] (out parameter)
+# 2. artifact_prefix
+# 3. target_folder
+# 4. out_artifact_name (out parameter)
+# 5. out_artifact_[atj] (out parameter)
 function build_artifact() {
-    [ "$#" -eq 3 ] || die "3 arguments required, $# provided"
+    [ "$#" -eq 5 ] || die "5 arguments required, $# provided"
     local __artifact_version=$1
-    local __out_artifact_name=$2
-    local __out_artifact_path=$3
+    local __artifact_prefix=$2
+    local __target_folder=$3
+    local __out_artifact_name=$4
+    local __out_artifact_path=$5
 
-    artifact_root="${bintray_artifact_prefix}${__artifact_version}"
+    artifact_root="${__artifact_prefix}-${__artifact_version}"
     artifact_name=`echo ${artifact_root}.zip|tr '-' '_'`
 	echo "==========================================="
 	echo "BUILDING ARTIFACT ${artifact_name}"
@@ -131,8 +140,8 @@ function build_artifact() {
 	artifact_folder=./${dist_path}
 	mkdir -p ${artifact_folder}
 
-	fatjar_file="${bintray_package}-${__artifact_version}"
-	fatjar_path="./target/scala-${scala_version}/${fatjar_file}"
+	fatjar_file="${__artifact_prefix}-${__artifact_version}"
+	fatjar_path="${__target_folder}/scala-${scala_version}/${fatjar_file}"
 	[ -f "${fatjar_path}" ] || die "Cannot find required fatjar: ${fatjar_path}. Did you forget to update fatjar versions?"
 	cp ${fatjar_path} ${artifact_folder}
 
@@ -187,12 +196,15 @@ version="" && error="" && get_version "version" "error"
 # Can't pass args thru vagrant push so have to prompt
 read -e -p "Please enter API key for Bintray user ${bintray_user}: " bintray_api_key
 
-assemble_fatjar
-
 create_bintray_package "${version}" "error"
 [ "${error}" ] && die "Error creating package: ${error}"
 
-artifact_name="" && artifact_path="" && build_artifact "${version}" "artifact_name" "artifact_path"
+assemble_fatjar "schema-guru"
+artifact_name="" && artifact_path="" && build_artifact "${version}" "schema-guru" "./target" "artifact_name" "artifact_path"
+upload_artifact_to_bintray "${artifact_name}" "${artifact_path}" "error"
+[ "${error}" ] && die "Error uploading package: ${error}"
 
+assemble_fatjar "schema-guru-webui"
+artifact_name="" && artifact_path="" && build_artifact "${version}" "schema-guru-webui" "./webui/target" "artifact_name" "artifact_path"
 upload_artifact_to_bintray "${artifact_name}" "${artifact_path}" "error"
 [ "${error}" ] && die "Error uploading package: ${error}"

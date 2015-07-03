@@ -2,13 +2,15 @@
 
 [ ![Build Status] [travis-image] ] [travis]  [ ![Release] [release-image] ] [releases] [ ![License] [license-image] ] [license]
 
-Schema Guru is a tool (currently CLI only) allowing you to derive **[JSON Schemas] [json-schema]** from a set of JSON instances.
+Schema Guru is a tool (CLI and web) allowing you to derive **[JSON Schemas] [json-schema]** from a set of JSON instances.
 
 Unlike other tools for deriving JSON Schemas, Schema Guru allows you to derive schema from an unlimited set of instances (making schemas much more precise), and supports many more JSON Schema validation properties.
 
 Schema Guru is used heavily in association with Snowplow's own **[Snowplow] [snowplow]** and **[Iglu] [iglu]** projects.
 
 ## User Quickstart
+
+### CLI
 
 Download the latest Schema Guru from Bintray:
 
@@ -35,20 +37,31 @@ Or you can analyze a single JSON instance:
 $ ./schema-guru-0.2.0 --file {{json_instance}}
 ```
 
-You can switch Schema Guru into ndjson mode. It means it will look for newline delimited JSONs.
-In this case all your files need to have .ndjson extension (as [specifications][ndjson-spec] says).
-All usual .json files will be skipped.
+You can also switch Schema Guru into ndjson mode, where it will look for newline delimited JSONs.
+
+In this case all your files need to have `.ndjson` extension (as the **[specifications][ndjson-spec]** says); all `.json` files will be skipped.
 
 ```bash
 $ ./schema-guru-0.2.0 --ndjson --dir {{ndjsons_directory}}
 ```
 
-You can specify enum cardinality tolerance for for your fields.
-It means that ALL fields which values has set of repeated values with less than specified cardinality will be annotated with enum property.
+You can specify the enum cardinality tolerance for for your fields. It means that *all* fields which are found to have less than the specified cardinality will be specified in the JSON Schema using the `enum` property.
 
 ```bash
-$ ./schema-guru-0.2.0 --enum 5 --dir {{ndjsons_directory}}
+$ ./schema-guru-0.2.0 --enum 5 --dir {{jsons_directory}}
 ```
+
+### Web UI
+
+You can access our hosted demo of the Schema Guru web UI at [schemaguru.snplowanalytics.com] [webui-hosted]. To run it locally:
+
+```bash
+$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_webui_0.2.0.zip
+$ unzip schema_guru_webui_0.2.0.zip
+$ ./schema-guru-webui-0.2.0
+```
+
+The above will run a Spray web server containing Schema Guru on [0.0.0.0:8000] [webui-local]. Interface and port can be specified by `--interface` and `--port` respectively.
 
 ## Developer Quickstart
 
@@ -59,34 +72,17 @@ Assuming git, **[Vagrant] [vagrant-install]** and **[VirtualBox] [virtualbox-ins
  host$ cd schema-guru
  host$ vagrant up && vagrant ssh
 guest$ cd /vagrant
-guest$ sbt test
+guest$ sbt assembly
+guest$ sbt "project schema-guru-webui" assembly
 ```
 
-## Web UI
+You can also deploy the Schema Guru web GUI onto Elastic Beanstalk:
 
-Also you can use Schema Guru Web UI
-
-```bash
-$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_webui_0.2.0.zip
-$ unzip schema_guru_webui_0.2.0.zip
-$ ./schema-guru-webui-0.2.0
+```
+guest$ cd beanstalk && zip beanstalk.zip *
 ```
 
-It will run Spray web server on 0.0.0.0:8000.
-Interface and port can be specified by --interface and --port respectively.
-
-### AWS Elastic Beanstalk
-
-You can deploy Schema Guru Web UI on AWS cloud.
-All you need for that is contained inside beanstalk directory.
-You need to zip these files:
-
-```bash
-$ cd beanstalk
-$ zip my_webui.zip *
-```
-
-Now just create new Docker app in [Elastic Beanstalk Console] [beanstalk-console] and upload this zip archive.
+Now just create a new Docker app in the **[Elastic Beanstalk Console] [beanstalk-console]** and upload this zipfile.
 
 ## User Manual
 
@@ -264,6 +260,9 @@ limitations under the License.
 
 [ndjson]: http://ndjson.org/
 [ndjson-spec]: http://dataprotocols.org/ndjson/
+
+[webui-local]: http://0.0.0.0:8000
+[webui-hosted]: http://schemaguru.snowplowanalytics.com
 
 [snowplow]: https://github.com/snowplow/snowplow
 [iglu]: https://github.com/snowplow/iglu
