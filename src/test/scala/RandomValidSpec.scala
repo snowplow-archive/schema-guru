@@ -28,7 +28,7 @@ import org.specs2.{Specification, ScalaCheck}
 // This project
 import JsonSchemaGenerator.jsonToSchema
 
-class SelfValidSpecification extends Specification with ScalaCheck with JsonGen { def is = s2"""
+class RandomValidSpecification extends Specification with ScalaCheck with JsonGen { def is = s2"""
   Derive schema from random generated JSON and validate against itself
     validate random JSON against derived schema            $validateJsonAgainstDerivedSchema
     validate any JSON against empty schema                 $validateJsonAgainstEmptySchema
@@ -37,7 +37,8 @@ class SelfValidSpecification extends Specification with ScalaCheck with JsonGen 
 
   def validateJsonAgainstDerivedSchema = prop { (json: JValue) =>
     val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
-    val derivedSchema = asJsonNode(jsonToSchema(json))
+    val jss = jsonToSchema(json)
+    val derivedSchema = asJsonNode(jss)
     val schema: JsonSchema = factory.getJsonSchema(derivedSchema)
 
     schema.validate(asJsonNode(json)).isSuccess must beTrue

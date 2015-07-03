@@ -1,0 +1,178 @@
+body {
+    font-family: proxima-nova, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.wrapper {
+    margin: 0 auto;
+    min-width: 800px;
+    width: 80%;
+}
+
+h2 {
+    background-color: aliceblue;
+    border: 1px solid aliceblue;
+    font-size: 18px;
+    margin: 0 0 12px 0;
+    padding: 4px 0;
+    text-align: center;
+    width: 100%;
+}
+
+table {
+    border-collapse: separate;
+}
+
+thead {
+    background-color: #f0ffff;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f0ffff;
+}
+
+tbody tr:hover {
+    background-color: #edffef;
+    cursor: pointer;
+}
+
+th {
+    font-weight: normal;
+}
+
+td {
+    font-size: 14px;
+    padding: 4px 0;
+}
+
+.jsons {
+    float: left;
+    max-width: 500px;
+    width: 48%;
+}
+
+.dropzone {
+    border: 1px dashed grey;
+    cursor: pointer;
+    margin-bottom: 12px;
+    min-height: 150px;
+    width: 100%;
+}
+
+.message {
+    color: #777777;
+    font-size: 24px;
+    margin: 72px 0px;
+    text-align: center;
+    width: 100%;
+}
+
+.dropzone.active {
+    background-color: #f7f7f7;
+}
+
+.options {
+    margin-bottom: 12px;
+}
+
+.options-value {
+    margin-right: 10px;
+    width: 30px;
+}
+
+.options-title {
+    font-size: 14px;
+}
+
+.schema {
+    float: right;
+    width: 48%;
+}
+
+.instance-list {
+    text-align: center;
+    width: 100%;
+}
+
+.instance-name {
+    position: relative;
+}
+
+.preview-tip {
+    background-color: rgb(228, 226, 255);
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5);
+    cursor: text;
+    font-family: monospace;
+    font-size: 12px;
+    margin: 0;
+    overflow: scroll;
+    padding: 6px;
+    position: absolute;
+    text-align: left;
+    top: 28px;
+    width: 355px;
+    z-index: 1;
+}
+
+textarea {
+    border: 1px solid rgb(216, 216, 216);
+    font-family: monospace;
+    font-size: 14px;
+    min-height: 150px;
+    width: 98.5%;
+}
+
+button {
+    background-color: #376188;
+    border: 1px solid #2c4288;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 12px;
+    padding: 4px 0;
+    width: 100%;
+}
+
+button[disabled] {
+    color: #d2d1d9;
+    cursor: default;
+}
+
+pre {
+    margin-bottom: 24px;
+}
+
+.warning-message {
+    margin-bottom: 6px;
+}
+
+.warning-items {
+    width: 100%;
+}
+
+footer {
+    border-top: 1px solid #cecece;
+    clear: both;
+    font-size: 14px;
+    padding-top: 20px;
+    position: relative;
+    text-align: center;
+    top: 50px;
+}
+
+.schema-view {
+    text-align: center;
+}
+
+.schema-view a {
+    border-bottom: 1px dashed #376188;
+    color: #4f74ae;
+    display: inline-block;
+    margin: 0 15px;
+    text-decoration: none;
+}
+
+.schema-view a.active {
+    border-bottom: none;
+    cursor: default;
+    color: black;
+}

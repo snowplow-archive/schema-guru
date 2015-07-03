@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "properties": {
+    "firstKey": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 32767
+    },
+    "nestedKeys": {
+      "type": "object",
+      "properties": {
+        "oneKey": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32767
+          }
+        },
+        "twoKey": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32767
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "possibleDuplicates": [["arbitraryKey", "arbitrayKey"]],
+  "additionalProperties": false
+}

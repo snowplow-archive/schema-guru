@@ -13,10 +13,6 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
-// Scalaz
-import scalaz._
-import Scalaz._
-
 // Scala
 import scala.annotation.tailrec
 
@@ -31,7 +27,6 @@ import org.joda.time.DateTime
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
 
 /**
  * Takes a JSON and converts it into a JsonSchema.
@@ -71,7 +66,9 @@ object JsonSchemaGenerator {
    */
   def jsonToSchema(json: JValue): JValue =
     json match {
-      case JObject(x) => ("type", "object") ~ ("properties", jObjectListProcessor(x)) ~ ("additionalProperties", false)
+      case JObject(x) => ("type", "object") ~
+                         ("properties", jObjectListProcessor(x)) ~
+                         ("additionalProperties", false)
       case JArray(x)  => ("type", "array") ~ ("items", jArrayListProcessor(x))
       case _          => null
     }
@@ -94,8 +91,8 @@ object JsonSchemaGenerator {
           case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
           case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
           case (k, JString(v))  => List((k, Annotations.annotateString(v)))
-          case (k, JInt(v))     => List((k, Annotations.annotateString(v)))
-          case (k, JDecimal(v)) => List((k, Annotations.annotateString(v)))
+          case (k, JInt(v))     => List((k, Annotations.annotateInteger(v)))
+          case (k, JDecimal(v)) => List((k, Annotations.annotateDecimal(v)))
           case (k, JDouble(v))  => List((k, Annotations.annotateDouble(v)))
           case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
           case (k, JNull)       => List((k, JsonSchemaType.NullT))
@@ -124,8 +121,8 @@ object JsonSchemaGenerator {
           case JObject(v)  => jsonToSchema(JObject(v))
           case JArray(v)   => jsonToSchema(JArray(v))
           case JString(v)  => Annotations.annotateString(v)
-          case JInt(v)     => Annotations.annotateString(v)
-          case JDecimal(v) => Annotations.annotateString(v)
+          case JInt(v)     => Annotations.annotateInteger(v)
+          case JDecimal(v) => Annotations.annotateDecimal(v)
           case JDouble(v)  => Annotations.annotateDouble(v)
           case JBool(_)    => JsonSchemaType.BooleanT
           case JNull       => JsonSchemaType.NullT
@@ -196,7 +193,15 @@ object JsonSchemaGenerator {
       else { None }
     }
 
+    def suggestBase64Pattern(string: String): Option[String] = {
+      val regex = "^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
+      if (string.matches(regex)) { Some(regex) }
+      else None
+    }
+
+
     private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _, suggestIpFormat _, suggestUrlFormat _)
+    private val patternSuggestions = List(suggestBase64Pattern _)
 
     /**
      * Tries to guess format of the string
@@ -207,11 +212,11 @@ object JsonSchemaGenerator {
      * @return some format or none if nothing suites
      */
     @tailrec
-    def guessFormat(value: String, suggestions: List[String => Option[String]]): String = {
+    def guessFormat(value: String, suggestions: List[String => Option[String]]): Option[String] = {
       suggestions match {
-        case Nil => "none"
+        case Nil => None
         case suggestion :: tail => suggestion(value) match {
-          case Some(format) => format
+          case Some(format) => Some(format)
           case None => guessFormat(value, tail)
         }
       }
@@ -219,29 +224,44 @@ object JsonSchemaGenerator {
 
     /**
      * Adds properties to string field
+     * TODO: consider one method name with overloaded arguments
      *
      * @return JsonSchemaType with recognized properties
      */
     def annotateString(value: String) =
-      JsonSchemaType.StringT ~ ("format", guessFormat(value, formatSuggestions))
+      JsonSchemaType.StringT ~
+      ("format", guessFormat(value, formatSuggestions)) ~
+      ("pattern", guessFormat(value, patternSuggestions)) ~
+      ("enum", JArray(List(value)))
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce
+     * Add itself to enum array
      */
-    def annotateString(value: BigInt) =
-      JsonSchemaType.IntegerT ~ ("minimum", value) ~ ("maximum", value)
+    def annotateInteger(value: BigInt) =
+      JsonSchemaType.IntegerT ~
+      ("minimum", value) ~
+      ("maximum", value) ~
+      ("enum", JArray(List(value)))
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
+     * Add itself to enum array
      */
-    def annotateString(value: BigDecimal) =
-      JsonSchemaType.DecimalT ~ ("minimum", value)
+    def annotateDecimal(value: BigDecimal) =
+      JsonSchemaType.DecimalT ~
+      ("minimum", value) ~
+      ("enum", JArray(List(value)))
+
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
+     * Add itself to enum array
      */
     def annotateDouble(value: Double) =
-      JsonSchemaType.DoubleT ~ ("minimum", value)
+      JsonSchemaType.DoubleT ~
+      ("minimum", value) ~
+      ("enum", JArray(List(value)))
   }
 }
 

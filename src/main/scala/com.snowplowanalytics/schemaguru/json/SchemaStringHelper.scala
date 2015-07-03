@@ -13,54 +13,70 @@
 package com.snowplowanalytics.schemaguru
 package json
 
+// json4s
 import org.json4s._
+import org.json4s.JsonDSL._
+
+// This library
+import JValueImplicits._
+
+/**
+ * Holds information about merged JSON Schema String
+ *
+ * @param format list of all encountered formats
+ * @param pattern list of all encountered patterns
+ * @param `type` must be always "string" (or contain "string"), or it won't be mapped
+ */
+// TODO: find out why it don't work when inserted into trait
+private[json] case class StringFieldReducer(format: JValue, pattern: JValue, `type`: JValue) extends SchemaHelper {
+  if (!contains(`type`, "string")) throw new MappingException("Does not contain type string")
+
+  def getField(field: String): Option[String] = field match {
+    case "format"  => getProps(format)
+    case "pattern" => getProps(pattern)
+    case _         => None
+  }
+
+  private[json] def getProps(props: JValue): Option[String] = props match {
+    case JArray(fms) if fms.toSet.size == 1 =>
+      fms.headOption flatMap {
+        case JString(s) => Some(s)
+        case _          => None
+      }
+    case JString(s) => Some(s)
+    case _          => None
+  }
+}
 
 trait SchemaStringHelper extends SchemaHelper {
   /**
-   * Holds information about merged JSON Schema String
-   *
-   * @param formats list of all encountered formats
-   */
-  private[json] case class StringFieldReducer(formats: List[String]) {
-    def getFormat: String = {
-      val formatSet = formats.toSet.toList
-      if (formatSet.size == 1) formatSet.head
-      else "none"
-    }
-  }
-
-  /**
    * Tries to extract unreduced string field
-   * Unreduced state imply it has format field as array
+   * Unreduced state imply it may have format and pattern fields as arrays
    *
    * @param jField any JValue, but for extraction it need to be
    *               JObject with type string, and format array
    * @return reducer if it is really string field
    */
-  private[json] def extractStringField(jField: JValue): Option[StringFieldReducer] = {
-    val list: List[StringFieldReducer] = for {
-      JObject(field) <- jField
-      JField("format", JArray(formats)) <- field
-      JField("type", types) <- field
-      if (contains(types, "string"))
-    } yield StringFieldReducer(formats)
-    list.headOption
-  }
+  def extractString(jField: JValue) =
+      jField.extractOpt[StringFieldReducer]
 
   /**
-   * Eliminates format property if more than one format presented
+   * Eliminates pattern property if more than one format presented
    *
+   * @param field is either "field" or "format" since they have same reduce
+   *              strategy
    * @param original is unreduced JSON Schema with string field
-   *                 and format property as JArray in it
+   *                 and pattern property as JArray in it
    * @return same JValue if string type wasn't or modified JValue otherwise
    */
-  def reduceStringFieldFormat(original: JValue) = {
-    val stringField = extractStringField(original)
+  def reduceStringField(field: String)(original: JValue) = {
+    val stringField = extractString(original)
     stringField match {
-      case Some(reducer) => original.merge(JObject("format" -> JString(reducer.getFormat)))  // it may be removed further
-                                    .removeField { case JField("format", JString("none")) => true
-      case _ => false }
-      case None => original
+      case None          => original    // it's not a string field
+      case Some(reducer) => reducer.getField(field) match {
+        case None          => original removeKey(field)
+        case Some(pattern) => original merge((field, pattern): JObject)   // set new pattern
+      }
     }
   }
 }

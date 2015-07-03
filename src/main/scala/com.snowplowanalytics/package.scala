@@ -20,12 +20,11 @@ import Scalaz._
 import org.json4s._
 
 package object schemaguru {
-
   /**
    * Case Class for containing the result
    * of running SchemaGuru
    */
-  case class SchemaGuruResult(schema: JValue, errors: List[String])
+  case class SchemaGuruResult(schema: JValue, errors: List[String], warning: Option[SchemaWarning] = None)
 
   /**
    * Type Alias for a Valid list of JSONs

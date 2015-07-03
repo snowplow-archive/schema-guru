@@ -21,7 +21,9 @@ import Scalaz._
 import org.json4s._
 import org.json4s.JsonDSL._
 
+// This library
 import json.SchemaHelpers._
+
 
 /**
  * Takes a list of JsonSchemas and merges them together into
@@ -66,14 +68,19 @@ object JsonSchemaMerger {
    *
    * @param jsonSchemaList The list of Schemas which
    *        we want to merge
+   * @param enumCardinality cardinality for detecting possible enums
    * @return the cumulative JsonSchema
    */
   // TODO: handle case where _starting_ List is empty (see: reduceLeftOption above)
-  def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil): JValue =
+  def mergeJsonSchemas(jsonSchemaList: List[JValue], accum: JValue = Nil, enumCardinality: Int = 0): JValue = {
     jsonSchemaList match {
-      case x :: xs => mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(accum))
-      case Nil     => reduceMergedSchema(accum)
+      case x :: xs => {
+        val annotatedAcc = LevenshteinAnnotator.addPossibleDuplicates(x, accum)
+        mergeJsonSchemas(xs, formatSchemaForMerge(x).merge(annotatedAcc), enumCardinality)
+      }
+      case Nil     => reduceMergedSchema(accum, enumCardinality)
     }
+  }
 
   /**
    * Transforms the type descriptor for every key
@@ -90,35 +97,48 @@ object JsonSchemaMerger {
       case ("type", JObject(v))     => ("type", JObject(v))
       case ("type", JString(v))     => ("type", JArray(List(v)))
 
-      case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
+      case ("minimum", JDouble(m))  => ("minimum", JArray(List(m)))
       case ("minimum", JInt(m))     => ("minimum", JArray(List(m)))
+      case ("maximum", JInt(m))     => ("maximum", JArray(List(m)))
 
       case ("format", JString(f))   => ("format", JArray(List(f)))
+      case ("format", JNothing)     => ("format", JArray(List(JNothing)))
+
+      case ("pattern", JString(f))  => ("pattern", JArray(List(f)))
+      case ("pattern", JNothing)    => ("pattern", JArray(List(JNothing)))
 
       case ("items", JArray(items)) => ("items", mergeJsonSchemas(items))
     }
 
   /**
-   * Reduces array to single value
+   * Reduces merged representation of schema to single schema.
+   * reduceMergedSchema produce valid JSON schema, but annotated
+   * with auxiliary data (like possibleDuplicates), which should
+   * be removed in further steps.
    *
    * i.e. "type" : ["string"] -> "type" : "string"
    *      "type" : ["integer", "number"] -> "type" : "number"
    *      "maximum" : [0, 10] -> "maximum" : 10
    *
    * @param jsonSchema The Schema we now want to reduce
+   * @param enumCardinality cardinality for detecting possible enums
    * @return the reduced JsonSchema ready for publishing
    */
-  def reduceMergedSchema(jsonSchema: JValue): JValue =
+  def reduceMergedSchema(jsonSchema: JValue, enumCardinality: Int = 0): JValue = {
     jsonSchema transformField {
       case ("type", JArray(list)) =>
         ("type", list match {
           case list if list.size == 1       => list(0)
-          case list if isMergedNumber(list) => "number"
+          case list if isMergedNumber(list) => list.filterNot(_ == JString("integer"))
           case list                         => JArray(list)
         })
       case ("properties", properties) =>
         ("properties", properties map(reduceIntegerFieldRange)
                                   map(reduceNumberFieldRange)
-                                  map(reduceStringFieldFormat))
+                                  map(reduceStringField("format"))
+                                  map(reduceStringField("pattern")))
+      case ("enum", JArray(list)) if list.length > enumCardinality =>
+        ("enum", JNothing) // delete it
     }
+  }
 }

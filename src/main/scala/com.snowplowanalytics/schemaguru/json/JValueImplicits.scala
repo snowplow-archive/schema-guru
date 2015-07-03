@@ -11,28 +11,22 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
+package json
 
-// json4s
-import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
+import scala.language.implicitConversions
 
-// Testing
-import org.specs2.Specification
+import org.json4s._
 
 /**
- * This test serve us as reminder that we should decide
- * whether duplicate keys are valid
+ * Often used additions to various json4s types
  */
-class JsonDuplicatedKeys extends Specification  { def is = s2"""
-
-  Decide whether duplicate keys in JSON are valid
-    merged                                     $keysMerged
-    """
-
-  def keysMerged = {
-    val oneKeyJson = "{\"format\":\"date-time\"}"
-    val duplicatedKeyJson = ("format", "date-time") ~ ("format", "date-time")
-    compact(duplicatedKeyJson) must beEqualTo(oneKeyJson)
-  }.pendingUntilFixed
+object JValueImplicits {
+  implicit class JValueImproved(jValue: JValue) {
+    def removeKey(Key: String): JValue = {
+      jValue.removeField {
+        case (Key, _) => true
+        case _        => false
+      }
+    }
+  }
 }
-

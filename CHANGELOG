@@ -1,3 +1,26 @@
+0.2.0 (2015-07-01)
+------------------
+Updated vagrant push to also build and publish webui artifact (#72)
+Added NS and CORE settings to Vagrantfile to improve performance (#79)
+Removed bin/jarx-stub.sh from project (#71)
+Added Elastic Beanstalk deployment using Docker (#70)
+Wrote tests for 0.2.0 milestone (#62)
+Now getting SchemaVer name from JSON Path (#67)
+Added configuration options for self-describing JSON Schema (#17, #19)
+Added ability to segment JSON instances based on a JSON property (#48)
+Refactored annotators to produce JNothing (#65)
+Added enum cardinality option to Web UI (#64)
+Now auto-detecting enums with configurable cardinality tolerance (#36)
+Now gracefully printing error message and exit app if invalid path given (#51)
+Now detecting field contains base64 (#58)
+Supported dragging a JSON string (#57)
+Added support of newline-delimited JSONs (#56)
+Now outputting duplicated keys in Web UI (#61)
+Now identifying and warning of misspelt properties (#31)
+Created a single-page UI in plain JS (#39)
+Added a sbt sub-project to schema-guru which embeds schema-guru in a Spray server (#53)
+Fixed incorrectly reduced integer and number (#60)
+
 0.1.0 (2015-06-03)
 ------------------
 Initial release

@@ -2,7 +2,7 @@
 
 [ ![Build Status] [travis-image] ] [travis]  [ ![Release] [release-image] ] [releases] [ ![License] [license-image] ] [license]
 
-Schema Guru is a tool (currently CLI only) allowing you to derive **[JSON Schemas] [json-schema]** from a set of JSON instances.
+Schema Guru is a tool (CLI and web) allowing you to derive **[JSON Schemas] [json-schema]** from a set of JSON instances.
 
 Unlike other tools for deriving JSON Schemas, Schema Guru allows you to derive schema from an unlimited set of instances (making schemas much more precise), and supports many more JSON Schema validation properties.
 
@@ -10,30 +10,58 @@ Schema Guru is used heavily in association with Snowplow's own **[Snowplow] [sno
 
 ## User Quickstart
 
+### CLI
+
 Download the latest Schema Guru from Bintray:
 
 ```bash
-$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_0.1.0.zip
-$ unzip schema_guru_0.1.0.zip
+$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_0.2.0.zip
+$ unzip schema_guru_0.2.0.zip
 ```
 
 Assuming you have a recent JVM installed:
 
 ```bash
-$ ./schema-guru-0.1.0 --dir {{jsons_directory}}
+$ ./schema-guru-0.2.0 --dir {{jsons_directory}}
 ```
 
 Also you can specify output file for your schema:
 
 ```bash
-$ ./schema-guru-0.1.0 --dir {{jsons_directory}} --output {{json_schema_file}}
+$ ./schema-guru-0.2.0 --dir {{jsons_directory}} --output {{json_schema_file}}
 ```
 
 Or you can analyze a single JSON instance:
 
 ```bash
-$ ./schema-guru-0.1.0 --file {{json_instance}}
+$ ./schema-guru-0.2.0 --file {{json_instance}}
 ```
+
+You can also switch Schema Guru into ndjson mode, where it will look for newline delimited JSONs.
+
+In this case all your files need to have `.ndjson` extension (as the **[specifications][ndjson-spec]** says); all `.json` files will be skipped.
+
+```bash
+$ ./schema-guru-0.2.0 --ndjson --dir {{ndjsons_directory}}
+```
+
+You can specify the enum cardinality tolerance for for your fields. It means that *all* fields which are found to have less than the specified cardinality will be specified in the JSON Schema using the `enum` property.
+
+```bash
+$ ./schema-guru-0.2.0 --enum 5 --dir {{jsons_directory}}
+```
+
+### Web UI
+
+You can access our hosted demo of the Schema Guru web UI at [schemaguru.snplowanalytics.com] [webui-hosted]. To run it locally:
+
+```bash
+$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_webui_0.2.0.zip
+$ unzip schema_guru_webui_0.2.0.zip
+$ ./schema-guru-webui-0.2.0
+```
+
+The above will run a Spray web server containing Schema Guru on [0.0.0.0:8000] [webui-local]. Interface and port can be specified by `--interface` and `--port` respectively.
 
 ## Developer Quickstart
 
@@ -44,8 +72,17 @@ Assuming git, **[Vagrant] [vagrant-install]** and **[VirtualBox] [virtualbox-ins
  host$ cd schema-guru
  host$ vagrant up && vagrant ssh
 guest$ cd /vagrant
-guest$ sbt test
+guest$ sbt assembly
+guest$ sbt "project schema-guru-webui" assembly
 ```
+
+You can also deploy the Schema Guru web GUI onto Elastic Beanstalk:
+
+```
+guest$ cd beanstalk && zip beanstalk.zip *
+```
+
+Now just create a new Docker app in the **[Elastic Beanstalk Console] [beanstalk-console]** and upload this zipfile.
 
 ## User Manual
 
@@ -59,7 +96,13 @@ guest$ sbt test
   - date-time (according to ISO-8601)
   - IPv4 and IPv6 addresses
   - HTTP, HTTPS, FTP URLs
+* Recognizes base64 pattern for strings
 * Detects integer ranges according to Int16, Int32, Int64
+* Detects misspelt properties and produce warnings
+* Detects enum values with specified cardinality
+* Allows to output **[Self-describing JSON Schema] [self-describing]**
+* Allows to produce JSON Schemas with different names based on given JSON Path
+* Supports **[Newline Delimited JSON] [ndjson]**
 
 ### Assumptions
 
@@ -67,6 +110,54 @@ guest$ sbt test
 * All JSONs are assumed to start with either `{ ... }` or `[ ... ]`
   - If they do not they are discarded
 * Schema should be as strict as possible - e.g. no `additionalProperties` are allowed currently
+* When using Schema Guru to derive schema from newline delimited JSONs they need to have .ndjson extension
+
+### Self-describing JSON
+Schema Guru allows you to produce **[Self-describing JSON Schema] [self-describing]**.
+To produce it you need to specify vendor, name (if segmentation isn't using, see below), and version (optional, default value is 0-1-0).
+
+```bash
+$ ./schema-guru-0.2.0 --dir {{jsons_directory}} --vendor {{your_company}} --name {{schema_name}} --schemaver {{version}}
+```
+
+### Schema Segmentation
+
+If you have set of mixed JSONs from one vendor, but with slightly different structure, like:
+
+```json
+{ "version": 1,
+  "type": "track",
+  "userId": "019mr8mf4r",
+  "event": "Purchased an Item",
+  "properties": {
+    "revenue": "39.95",
+    "shippingMethod": "2-day" },
+  "timestamp" : "2012-12-02T00:30:08.276Z" }
+```
+
+and
+
+```json
+{ "version": 1,
+  "type": "track",
+  "userId": "019mr8mf4r",
+  "event": "Posted a Comment",
+  "properties": {
+    "body": "This book is gorgeous!",
+    "attachment": false },
+  "timestamp" : "2012-12-02T00:28:02.273Z" }
+```
+
+You can run it as follows:
+```bash
+$ ./schema-guru-0.2.0 --dir {{mixed_jsons_directory}} --output-dir {{output_dir}} --schema-by $.event
+```
+
+It will put two (or may be more) JSON Schemas into output dir: Purchased_an_Item.json and Posted_a_comment.json.
+They will be derived from JSONs only with corresponding event property, without any intersections.
+Assuming that provided JSON Path contain valid string.
+All schemas where this JSON Path is absent or contains not a string value will be merged into unmatched.json schema in the same output dir.
+Also, when Self-describing JSON Schema producing, it will take schema name in the same way and --name argument can be omitted (it will replace name specified with option).
 
 ### Example
 
@@ -162,13 +253,22 @@ limitations under the License.
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
-[release-image]: http://img.shields.io/badge/release-0.1.0-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-0.2.0-blue.svg?style=flat
 [releases]: https://github.com/snowplow/schema-guru/releases
 
 [json-schema]: http://json-schema.org/
 
+[ndjson]: http://ndjson.org/
+[ndjson-spec]: http://dataprotocols.org/ndjson/
+
+[webui-local]: http://0.0.0.0:8000
+[webui-hosted]: http://schemaguru.snowplowanalytics.com
+
 [snowplow]: https://github.com/snowplow/snowplow
 [iglu]: https://github.com/snowplow/iglu
+[self-describing]: http://snowplowanalytics.com/blog/2014/05/15/introducing-self-describing-jsons/
 
 [vagrant-install]: http://docs.vagrantup.com/v2/installation/index.html
 [virtualbox-install]: https://www.virtualbox.org/wiki/Downloads
+
+[beanstalk-console]: http://console.aws.amazon.com/elasticbeanstalk

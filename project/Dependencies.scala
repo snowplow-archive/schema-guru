@@ -24,7 +24,7 @@ object Dependencies {
     // Java
     val yodaTime         = "2.1"
     val yodaConvert      = "1.2"
-    val jacksonDatabind  = "2.2.3"
+    val jacksonDatabind  = "2.5.4"
     val jsonValidator    = "2.2.3"
     val commonsValidator = "1.4.1"
     // Scala
@@ -32,12 +32,13 @@ object Dependencies {
     val scalaz7          = "7.0.6"
     val algebird         = "0.8.1"
     val json4s           = "3.2.11"
-    val igluClient       = "0.2.0"
+    val jsonpath         = "0.6.4"
+    val akka             = "2.3.9"
+    val spray            = "1.3.3"
     // Scala (test only)
     val specs2           = "2.3.13"
     val scalazSpecs2     = "0.2"
     val scalaCheck       = "1.12.2"
-    val commonsCodec     = "1.5"
   }
 
   object Libraries {
@@ -52,11 +53,16 @@ object Dependencies {
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
     val algebird         = "com.twitter"                %% "algebird-core"             % V.algebird
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
-    val json4sScalaz     = "org.json4s"                 %% "json4s-scalaz"             % V.json4s    
-    val igluClient       = "com.snowplowanalytics"      %  "iglu-scala-client"         % V.igluClient
+    val json4sScalaz     = "org.json4s"                 %% "json4s-scalaz"             % V.json4s
+    val jsonpath         = "io.gatling"                 %% "jsonpath"                  % V.jsonpath
+    // Spray
+    val akka             = "com.typesafe.akka"          %% "akka-actor"                % V.akka
+    val sprayCan         = "io.spray"                   %% "spray-can"                 % V.spray
+    val sprayRouting     = "io.spray"                   %% "spray-routing"             % V.spray
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2"                    % V.specs2         % "test"
     val scalazSpecs2     = "org.typelevel"              %% "scalaz-specs2"             % V.scalazSpecs2   % "test"
     val scalaCheck       = "org.scalacheck"             %% "scalacheck"                % V.scalaCheck     % "test"
+    val sprayTestkit     = "io.spray"                   %% "spray-testkit"             % V.spray          % "test"
   }
 }

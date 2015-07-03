@@ -1,0 +1,136 @@
+{
+  "type": "object",
+  "properties": {
+    "one": {
+      "type": "null"
+    },
+    "someObject": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "arrayOfObjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hereString": {
+            "type": "string"
+          },
+          "hereNull": {
+            "type": "null"
+          },
+          "hereAnotherArray": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 32767
+                },
+                "anotherKey": {
+                  "type": "null"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "someNestedObjects": {
+      "type": "object",
+      "properties": {
+        "firstObject": {
+          "type": "object",
+          "properties": {
+            "firstKey": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 32767
+            },
+            "nowObject": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "secondObject": {
+          "type": "object",
+          "properties": {
+            "firstObject": {
+              "type": "object",
+              "properties": {
+                "itShouldBeNull": {
+                  "type": "null"
+                }
+              },
+              "additionalProperties": false
+            },
+            "nowKey": {
+              "type": "null"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "thirdObject": {
+      "type": "object",
+      "properties": {
+        "firstObject": {
+          "type": "object",
+          "properties": {
+            "itShouldBeNull": {
+              "type": "null"
+            },
+            "hereNestedAgain": {
+              "type": "object",
+              "properties": {
+                "nowKey": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "nowKey": {
+              "type": "null"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "nestedObjectWithSpecialKeys": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "propertyOne": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 32767
+            },
+            "propertyTwo": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

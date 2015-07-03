@@ -50,11 +50,28 @@ trait SchemaHelper {
    * This predicate detects if current field contains type we're looking for
    * @param value is possible value with JArray, JString or any other JValue
    * @param string string we're looking for. Possible one of schema types
-   * @return whether string were found
    */
   def contains(value: JValue, string: String) = value match {
     case JString(content) if (content == string) => true
     case JArray(types) if types.contains(JString(string)) => true
+    case _ => false
+  }
+
+  /**
+   * Some types in JSON Schema can be presented as product types
+   * e.g. "type": ["string", "number"].
+   * This predicate detects if current object contains type we're looking for
+   * @param value is JSON. Only JObject can contain type
+   * @param `type` one of schema types
+   */
+  def containsType(value: JValue, `type`: String): Boolean = value match {
+    case o @ JObject(_) => o.findField {
+      case ("type", types) => contains(types, `type`)
+      case _ => false
+    } match {
+      case Some(_) => true
+      case None => false
+    }
     case _ => false
   }
 }

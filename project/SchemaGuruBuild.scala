@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2012-2014 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2015 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0, and
  * you may not use this file except in compliance with the Apache License
@@ -19,6 +19,7 @@ object SchemaGuruBuild extends Build {
 
   import Dependencies._
   import BuildSettings._
+  import WebuiBuildSettings._
 
   // Configure prompt to show current project.
   override lazy val settings = super.settings :+ {
@@ -28,7 +29,7 @@ object SchemaGuruBuild extends Build {
   // Define our project, with basic project information and library
   // dependencies.
   lazy val project = Project("schema-guru", file("."))
-    .settings(buildSettings: _*)
+    .settings(coreBuildSettings: _*)
     .settings(
       libraryDependencies ++= Seq(
         // Java
@@ -43,10 +44,27 @@ object SchemaGuruBuild extends Build {
         Libraries.algebird,
         Libraries.json4sJackson,
         Libraries.json4sScalaz,
+        Libraries.jsonpath,
         // Scala (test only)
         Libraries.specs2,
         Libraries.scalazSpecs2,
         Libraries.scalaCheck
       )
     )
+
+  lazy val webui = Project("schema-guru-webui", file("webui"))
+    .settings(webuiBuildSettings: _*)
+    .settings(compile in Compile <<= (compile in Compile).dependsOn(gulpDeployTask))
+    .settings(
+      libraryDependencies ++= Seq(
+        // Scala
+        Libraries.akka,
+        Libraries.sprayCan,
+        Libraries.sprayRouting,
+        // Scala (test only)
+        Libraries.specs2,
+        Libraries.sprayTestkit
+      )
+    )
+    .dependsOn(project)
 }

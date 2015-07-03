@@ -20,7 +20,7 @@ import org.json4s.jackson.JsonMethods._
 // Testing
 import org.specs2.Specification
 
-class IntegerRangeReduceSpecification extends Specification with SchemaIntegerHelper { def is = s2"""
+class IntegerRangeReduceSpec extends Specification with SchemaIntegerHelper { def is = s2"""
   Check integer range
     guess zero as positive                     $guessZero
     guess Int16                                $guessInt16
