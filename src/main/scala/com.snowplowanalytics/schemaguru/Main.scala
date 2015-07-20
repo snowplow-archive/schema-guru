@@ -16,13 +16,14 @@ package com.snowplowanalytics.schemaguru
 import org.clapper.argot._
 import org.clapper.argot.ArgotConverters._
 
+// This library
 import cli._
 
 object Main extends App {
   private val commands =
     """
       |Currently supported subcommands are:
-      |db     - use JSON Schema to generate DDL file for specific DB
+      |ddl    - use JSON Schema to generate DDL file for specific DB
       |derive - use set of JSON instances to derive JSON Schema
     """.stripMargin
 
@@ -54,7 +55,7 @@ object Main extends App {
 
   subcommand.value match {
     case Some("derive") => DeriveCommand(subcommandArgs)
-    case Some("db")     => DBCommand(subcommandArgs)
+    case Some("ddl")    => DdlCommand(subcommandArgs)
     case _              => parser.usage("You need to specify subcommand.\n" + commands)
   }
 }
