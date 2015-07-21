@@ -20,12 +20,14 @@ import org.clapper.argot.ArgotConverters._
 import cli._
 
 object Main extends App {
-  private val commands =
-    """
-      |Currently supported subcommands are:
-      |ddl    - use JSON Schema to generate DDL file for specific DB
-      |derive - use set of JSON instances to derive JSON Schema
-    """.stripMargin
+  // List of all supported commands
+  private val commandsList = List(DdlCommand, SchemaCommand)  // companion objects with static info
+  private val commandsMap: Map[String, GuruCommand] = (for { c <- commandsList } yield (c.title, c)).toMap
+
+  // Help message
+  private val subcommandsHelp = "Subcommands are:\n" + commandsMap.map {
+    case (title, command) => title + " - " + command.description
+  }.mkString("\n")
 
   private val parser = new ArgotParser(
     programName = generated.ProjectSettings.name,
@@ -42,20 +44,19 @@ object Main extends App {
 
   // Simulate subcommands with argot
   val primaryArgs = args.take(1)    // take only --help or subcommand
-  val subcommandArgs = args.drop(1) // hide another options from argot parser
-
+  val subcommandArgs = args.drop(1) // subcommand arguments
   try {
     parser.parse(primaryArgs)
   } catch {
     case _: ArgotUsageException if helpFlag.value.getOrElse(false) => {
-      println(parser.usageString() + commands)
+      println(parser.usageString() + "\n" + subcommandsHelp)
       sys.exit(0)
     }
   }
 
-  subcommand.value match {
-    case Some("derive") => DeriveCommand(subcommandArgs)
-    case Some("ddl")    => DdlCommand(subcommandArgs)
-    case _              => parser.usage("You need to specify subcommand.\n" + commands)
+  // Find command in commandsMap and execute it with args
+  subcommand.value.flatMap(commandsMap.get(_)) match {
+    case Some(command) => command(subcommandArgs)
+    case _             => parser.usage("You need to specify subcommand.\n" + subcommandsHelp)
   }
 }

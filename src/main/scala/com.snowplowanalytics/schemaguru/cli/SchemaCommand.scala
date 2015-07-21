@@ -15,7 +15,6 @@ package cli
 
 // Java
 import java.io.File
-import java.nio.file.{ Files, Paths }
 
 // json4s
 import org.json4s._
@@ -34,34 +33,36 @@ import utils._
  *
  * @param args array of arguments passed via CLI
  */
-class DeriveCommand(args: Array[String]) extends FileSystemJsonGetters  {
-  val parser = new ArgotParser(programName = generated.ProjectSettings.name + " derive", compactUsage = true)
+class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
+  import SchemaCommand._
+
+  // Required
+  val inputArgument = parser.parameter[File]("input", "Path to schema or directory with schemas", false)
 
   // primary subcommand's options and arguments
-  val directoryArgument = parser.option[String](List("dir"), "directory", "Directory which contains JSONs to be converted")
-  val fileArgument = parser.option[String](List("file"), "file", "Single JSON instance to be converted")
-  val outputFileArgument = parser.option[String]("output", "file", "Output file")
-  val cardinalityArgument = parser.option[Int](List("enum"), "n", "Cardinality to evaluate enum property")
+  val outputOption = parser.option[String]("output", "path", "Output file (print to stdout otherwise)")
+  val cardinalityOption = parser.option[Int](List("enum"), "n", "Cardinality to evaluate enum property")
   val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
-  val schemaByArgument = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
-  val outputDirArgument = parser.option[String](List("output-dir"), "directory", "Directory path for multiple Schemas")
+  val schemaByOption = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
 
   // self-describing schema arguments
-  val vendorArgument = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
-  val nameArgument = parser.option[String](List("name"), "name", "Schema name for self-describing schema")
-  val versionArgument = parser.option[String](List("schemaver"), "version", "Schema version (in SchemaVer format) for self-describing schema")
+  val vendorOption = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
+  val nameOption = parser.option[String](List("name"), "name", "Schema name for self-describing schema")
+  val versionOption = parser.option[String](List("schemaver"), "version", "Schema version (in SchemaVer format) for self-describing schema")
 
   parser.parse(args)
 
+  val input = inputArgument.value.get // isn't optional
+
   // Get arguments for JSON Path segmentation and validate them
-  val segmentSchema = (schemaByArgument.value, outputDirArgument.value) match {
+  val segmentSchema = (schemaByOption.value, outputOption.value) match {
     case (Some(jsonPath), Some(dirPath)) => Some((jsonPath, dirPath))
-    case (None, None) => None
-    case _ => parser.usage("--schema-by and --output-dir arguments need to be used in conjunction.")
+    case (Some(jsonPath), None)          => Some((jsonPath, "."))
+    case _                               => None
   }
 
   // Get arguments for self-describing schema and validate them
-  val selfDescribing = (vendorArgument.value, nameArgument.value, versionArgument.value) match {
+  val selfDescribing = (vendorOption.value, nameOption.value, versionOption.value) match {
     case (Some(vendor), name, version) => {
       name match {
         case None if (!segmentSchema.isDefined)   => parser.usage("You need to specify --name OR segment schema.")
@@ -81,31 +82,18 @@ class DeriveCommand(args: Array[String]) extends FileSystemJsonGetters  {
     case _  => parser.usage("--vendor, --name and --schemaver arguments need to be used in conjunction.")
   }
 
-  val enumCardinality = cardinalityArgument.value.getOrElse(0)
-
-  // Check whether provided path exists
-  List(directoryArgument.value, fileArgument.value).flatten.headOption match {
-    case None => parser.usage("Either --dir or --file argument must be provided.")
-    case Some(path) => {
-      if (Files.exists(Paths.get(path))) ()  // everything is OK
-      else parser.usage(s"Path $path does exists")
-    }
-  }
+  val enumCardinality = cardinalityOption.value.getOrElse(0)
 
   // Decide where and which files should be parsed
-  val jsonList: ValidJsonList = directoryArgument.value match {
-    case Some(dir) => ndjsonFlag.value match {
-      case Some(true) => getJsonsFromFolderWithNDFiles(dir)
-      case _          => getJsonsFromFolder(dir)
+  val jsonList: ValidJsonList =
+    if (input.isDirectory) ndjsonFlag.value match {
+      case Some(true) => getJsonsFromFolderWithNDFiles(input.getAbsolutePath)
+      case _          => getJsonsFromFolder(input.getAbsolutePath)
     }
-    case None      => fileArgument.value match {
-      case None       => parser.usage("Either --dir or --file argument must be provided.")
-      case Some(file) => ndjsonFlag.value match {
-        case Some(true) => getJsonFromNDFile(file)
-        case _          => List(getJsonFromFile(file))
-      }
+    else ndjsonFlag.value match {
+      case Some(true) => getJsonFromNDFile(input.getAbsolutePath)
+      case _          => List(getJsonFromFile(input.getAbsolutePath))
     }
-  }
 
   jsonList match {
     case Nil => parser.usage("Directory does not contain any JSON files.")
@@ -113,7 +101,7 @@ class DeriveCommand(args: Array[String]) extends FileSystemJsonGetters  {
       segmentSchema match {
         case None => {
           val result = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
-          outputResult(result, outputFileArgument.value, selfDescribing)
+          outputResult(result, outputOption.value, selfDescribing)
         }
         case Some((path, dir)) => {
           val nameToJsonsMapping = JsonPathExtractor.mapByPath(path, jsonList)
@@ -169,6 +157,13 @@ class DeriveCommand(args: Array[String]) extends FileSystemJsonGetters  {
   }
 }
 
-object DeriveCommand {
-  def apply(args: Array[String]) = new DeriveCommand(args)
+/**
+ * Companion object holding all static information about command
+ */
+object SchemaCommand extends GuruCommand {
+  val title = "schema"
+  val description = "Derive JSON Schema from set of JSON instances"
+  val parser = new ArgotParser(programName = generated.ProjectSettings.name + " " + title, compactUsage = true)
+
+  def apply(args: Array[String]) = new SchemaCommand(args)
 }

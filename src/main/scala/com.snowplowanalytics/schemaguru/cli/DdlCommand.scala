@@ -39,29 +39,26 @@ import com.snowplowanalytics.igluutils.utils.{ FileUtils => FU }
  *
  * @param args array of arguments passed via CLI
  */
-class DdlCommand(args: Array[String]) {
+class DdlCommand(val args: Array[String]) {
   import DdlCommand._
 
-  val parser = new ArgotParser(
-    programName = generated.ProjectSettings.name + " db",
-    compactUsage = true
-  )
+  // Required
+  val inputArgument = parser.parameter[File]("input", "Path to schema or directory with schemas", false)
 
   // Set all arguments
-  val pathOption = parser.option[File](List("path"), "schema", "Path to schema or directory with schemas")
-  val destinationOption = parser.option[File](List("dest"), "path", "Destination path")
+  val outputOption = parser.option[File](List("output"), "path", "Destination directory")
   val dbOption = parser.option[String](List("db"), "name", "For which DB we need to produce DDL (default: redshift)")
   val withJsonPathsFlag = parser.flag("with-json-paths", false, "Produce JSON Paths files with DDL")
   val rawModeFlag = parser.flag("raw", false, "Produce raw DDL without Snowplow-specific data")
   val schemaOption = parser.option[String](List("schema"), "name", "Redshift schema name")
   val sizeOption = parser.option[Int](List("size"), "n", "Default size for varchar data type")
-  val splitProductFlag = parser.flag("splitProduct", false, "Split product types into different keys")
+  val splitProductFlag = parser.flag("split-product", false, "Split product types into different keys")
 
   parser.parse(args)
 
   // Get all arguments
-  val file = pathOption.value.getOrElse { parser.usage("--path is required option") }
-  val destination = destinationOption.value.getOrElse(new File("./testing"))
+  val input = inputArgument.value.get  // isn't optional
+  val outputPath = outputOption.value.getOrElse(new File("."))
   val db = dbOption.value.getOrElse("redshift")
   val withJsonPaths = withJsonPathsFlag.value.getOrElse(false)
   val rawMode = rawModeFlag.value.getOrElse(false)
@@ -70,10 +67,10 @@ class DdlCommand(args: Array[String]) {
   val splitProduct = splitProductFlag.value.getOrElse(false)
 
   // Check how to handle path
-  if (file.isDirectory) {
-    fetchAndParseFromDirectory(file)
+  if (input.isDirectory) {
+    fetchAndParseFromDirectory(input)
   } else {
-    fetchAndParseFromFile(file)
+    fetchAndParseFromFile(input)
   }
 
   /**
@@ -139,35 +136,27 @@ class DdlCommand(args: Array[String]) {
   private def output(jpf: List[String], rdf: List[String], warnings: List[String], combined: (String, String)): Unit = {
     val (vendor, file) = combined
 
-    val ddlDir = new File(destination, "sql/" + vendor).getAbsolutePath
+    val ddlDir = new File(outputPath, "sql/" + vendor).getAbsolutePath
     FU.writeListToFile(file + ".sql", ddlDir, rdf).map(println)
 
     if (withJsonPaths) {
-      val jsonPathDir = new File(destination, "jsonpaths/" + vendor).getAbsolutePath
+      val jsonPathDir = new File(outputPath, "jsonpaths/" + vendor).getAbsolutePath
       FU.writeListToFile(file + ".json", jsonPathDir, jpf).map(println)
     }
     if (!warnings.isEmpty) {
       for { warning <- warnings } println("WARNING: " + warning)
     }
   }
-
-  /**
-   * Function to implicitly convert string with path argument to File
-   *
-   * @param path valid path to file
-   * @param opt command-line argument
-   * @return Java's File if it exists
-   */
-  private implicit def convertFilePath(path: String, opt: CommandLineArgument[File]): File = {
-    val file = new File(path)
-    if (!file.exists) {
-      parser.usage(s"Input file [$path] does not exist.")
-    }
-    file
-  }
 }
 
-object DdlCommand {
+/**
+ * Companion object holding all static information about command
+ */
+object DdlCommand extends GuruCommand {
+  val title = "ddl"
+  val description = "Derive DDL using JSON Schema"
+  val parser = new ArgotParser(programName = generated.ProjectSettings.name + " " + title, compactUsage = true)
+
   def apply(args: Array[String]) = new DdlCommand(args)
 
   /**
