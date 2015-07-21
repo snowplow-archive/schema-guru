@@ -124,12 +124,11 @@ trait FileSystemJsonGetters {
    * delimited JSONS it was pointed at.
    *
    * @param dir The directory we are going to get JSONs from
-   * @param ext The extension of the file we are going to be attempting to grab
    * @return a List with validated JSONs nested inside
    */
-  def getJsonsFromFolderWithNDFiles(dir: String, ext: String = "ndjson"): ValidJsonList = {
+  def getJsonsFromFolderWithNDFiles(dir: String): ValidJsonList = {
     val proccessed = for {
-      filePath <- new java.io.File(dir).listFiles.filter(_.getName.endsWith("." + ext))
+      filePath <- new java.io.File(dir).listFiles.filterNot(_.getName.startsWith("."))
     } yield {
         getJsonFromNDFile(filePath.getAbsolutePath)
       }
