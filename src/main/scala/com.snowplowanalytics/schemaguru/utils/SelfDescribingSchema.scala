@@ -33,7 +33,7 @@ case class SelfDescribingSchema(vendor: String, name: Option[String], version: O
     val selfObject: JObject = ("self",
       (("vendor", vendor): JObject) ~
       (("name", name.getOrElse("unspecified")): JObject) ~
-      (("version", version.getOrElse("0-1-0")): JObject) ~
+      (("version", version.getOrElse("1-0-0")): JObject) ~
       ("format", "jsonschema"))
 
     uri.merge(selfObject).merge(schema)

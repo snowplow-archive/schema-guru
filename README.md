@@ -114,7 +114,7 @@ Now just create a new Docker app in the **[Elastic Beanstalk Console] [beanstalk
 
 ### Self-describing JSON
 Schema Guru allows you to produce **[Self-describing JSON Schema] [self-describing]**.
-To produce it you need to specify vendor, name (if segmentation isn't using, see below), and version (optional, default value is 0-1-0).
+To produce it you need to specify vendor, name (if segmentation isn't using, see below), and version (optional, default value is 1-0-0).
 
 ```bash
 $ ./schema-guru-0.2.0 --dir {{jsons_directory}} --vendor {{your_company}} --name {{schema_name}} --schemaver {{version}}
