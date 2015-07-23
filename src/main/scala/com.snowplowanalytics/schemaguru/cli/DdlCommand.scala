@@ -20,12 +20,15 @@ import Scalaz._
 // Java
 import java.io.File
 
+// json4s
+import org.json4s.JValue
+
 // Argot
 import org.clapper.argot._
 import ArgotConverters._
 
 // Igluutils
-import com.snowplowanalytics.igluutils._
+import com.snowplowanalytics.igluutils.SelfDescInfo
 import com.snowplowanalytics.igluutils.generators.{
   JsonPathGenerator => JPG,
   SchemaFlattener => SF
@@ -33,13 +36,16 @@ import com.snowplowanalytics.igluutils.generators.{
 import com.snowplowanalytics.igluutils.generators.redshift.{ RedshiftDdlGenerator => RDG }
 import com.snowplowanalytics.igluutils.utils.{ FileUtils => FU }
 
+// This library
+import utils.FileSystemJsonGetters
+
 /**
  * Holds all information passed with CLI and decides how to produce
  * DDL and JSON Paths
  *
  * @param args array of arguments passed via CLI
  */
-class DdlCommand(val args: Array[String]) {
+class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   import DdlCommand._
 
   // Required
@@ -66,36 +72,28 @@ class DdlCommand(val args: Array[String]) {
   val size = sizeOption.value.getOrElse(255)
   val splitProduct = splitProductFlag.value.getOrElse(false)
 
-  // Check how to handle path
-  if (input.isDirectory) {
-    fetchAndParseFromDirectory(input)
-  } else {
-    fetchAndParseFromFile(input)
+  val schemaList: ValidJsonList =
+    if (input.isDirectory) {
+      getJsonsFromFolder(input)
+    } else {
+      List(getJsonFromFile(input))
+    }
+
+  schemaList match {
+    case Nil       => parser.usage(s"Directory ${input.getAbsolutePath} does not contain any JSON files")
+    case someJsons => someJsons.map(processAndOutput)
   }
 
   /**
-   * Get all files from specified ``dir`` and tries to fetch, process and
-   * output JSON Path and DDL from all found files
-   *
-   * @param dir directory with JSON Schemas
-   */
-  private def fetchAndParseFromDirectory(dir: File): Unit = {
-    val schemas = FU.listSchemas(dir)
-    schemas.map(fetchAndParseFromFile(_))
-  }
-
-  /**
-   * Fetch JSON Schema from specified ``file``, process and output JSON Path
-   * and DDL
+   * Process schema and output JSON Path and DDL
    *
    * @param file file with JSON Schema
    */
-  private def fetchAndParseFromFile(file: File): Unit = {
-    processFile(file) match {
+  private def processAndOutput(file: Validation[String, JValue]): Unit = {
+    processSchema(file) match {
       case Success((jsonPathLines, redshiftLines, warningLines, combined)) =>
         output(jsonPathLines, redshiftLines, warningLines, combined)
       case Failure(str) => {
-        println(s"Error in [${file.getAbsolutePath}]")
         println(str)
         sys.exit(1)
       }
@@ -105,13 +103,13 @@ class DdlCommand(val args: Array[String]) {
   /**
    * Core function producing JSON Paths file, DDL, warnings and path
    *
-   * @param file JSON Schema file
+   * @param json content of JSON file (JSON Schema)
    * @return all validated information as tuple
    */
-  def processFile(file: File): Validation[String, (List[String], List[String], List[String], (String, String))] = {
+  def processSchema(json: Validation[String, JValue]): Validation[String, (List[String], List[String], List[String], (String, String))] = {
     for {
-      json <- FU.getJsonFromFile(file)
-      flatSchema <- SF.flattenJsonSchema(json, splitProduct)
+      validJson <- json
+      flatSchema <- SF.flattenJsonSchema(validJson, splitProduct)
     } yield {
       val combined = getFileName(flatSchema.self)
 

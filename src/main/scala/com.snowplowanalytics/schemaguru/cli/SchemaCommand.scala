@@ -87,12 +87,12 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
   // Decide where and which files should be parsed
   val jsonList: ValidJsonList =
     if (input.isDirectory) ndjsonFlag.value match {
-      case Some(true) => getJsonsFromFolderWithNDFiles(input.getAbsolutePath)
-      case _          => getJsonsFromFolder(input.getAbsolutePath)
+      case Some(true) => getJsonsFromFolderWithNDFiles(input)
+      case _          => getJsonsFromFolder(input)
     }
     else ndjsonFlag.value match {
-      case Some(true) => getJsonFromNDFile(input.getAbsolutePath)
-      case _          => List(getJsonFromFile(input.getAbsolutePath))
+      case Some(true) => getJsonFromNDFile(input)
+      case _          => List(getJsonFromFile(input))
     }
 
   jsonList match {
