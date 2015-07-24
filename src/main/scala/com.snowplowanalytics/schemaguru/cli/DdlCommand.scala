@@ -28,13 +28,19 @@ import org.clapper.argot._
 import ArgotConverters._
 
 // Igluutils
-import com.snowplowanalytics.igluutils.SelfDescInfo
+import com.snowplowanalytics.igluutils.{ SelfDescInfo, GenerationResult }
 import com.snowplowanalytics.igluutils.generators.{
   JsonPathGenerator => JPG,
   SchemaFlattener => SF
 }
-import com.snowplowanalytics.igluutils.generators.redshift.{ RedshiftDdlGenerator => RDG }
-import com.snowplowanalytics.igluutils.utils.{ FileUtils => FU }
+import com.snowplowanalytics.igluutils.generators.redshift.{
+  RedshiftDdlGenerator => RDG
+}
+import com.snowplowanalytics.igluutils.utils.{
+  FileUtils => FU,
+  StringUtils => SU
+
+}
 
 // This library
 import utils.FileSystemJsonGetters
@@ -72,11 +78,11 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val size = sizeOption.value.getOrElse(255)
   val splitProduct = splitProductFlag.value.getOrElse(false)
 
-  val schemaList: ValidJsonList =
+  val schemaList: ValidJsonFileList =
     if (input.isDirectory) {
-      getJsonsFromFolder(input)
+      getJsonFilesFromFolder(input)
     } else {
-      List(getJsonFromFile(input))
+      List(getJsonFileFromFile(input))
     }
 
   schemaList match {
@@ -89,7 +95,7 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
    *
    * @param file file with JSON Schema
    */
-  private def processAndOutput(file: Validation[String, JValue]): Unit = {
+  private def processAndOutput(file: Validation[String, JsonFile]): Unit = {
     processSchema(file) match {
       case Success((jsonPathLines, redshiftLines, warningLines, combined)) =>
         output(jsonPathLines, redshiftLines, warningLines, combined)
@@ -106,20 +112,36 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
    * @param json content of JSON file (JSON Schema)
    * @return all validated information as tuple
    */
-  def processSchema(json: Validation[String, JValue]): Validation[String, (List[String], List[String], List[String], (String, String))] = {
-    for {
+  def processSchema(json: Validation[String, JsonFile]): Validation[String, (List[String], List[String], List[String], (String, String))] = {
+    val processed = for {
       validJson <- json
-      flatSchema <- SF.flattenJsonSchema(validJson, splitProduct)
+      flatSchema <- SF.flattenJsonSchema(validJson.content, splitProduct)
     } yield {
-      val combined = getFileName(flatSchema.self)
+        val jsonPathLines = JPG.getJsonPathsFile(flatSchema, rawMode)
 
-      val ddl = db match {
-        case "redshift" => RDG.getRedshiftDdl(flatSchema, schemaName, size, rawMode)
-        case otherDb => parser.usage(s"Error: DDL generation for $otherDb is not supported yet")
+        db match {
+          case "redshift" if rawMode => {     // process without self describing info
+            val ddl = RDG.getRawRedshiftDdl(flatSchema, validJson.fileName, schemaName, size)
+            val fileNameWithoutExtension =
+              if (validJson.fileName.endsWith(".json")) validJson.fileName.dropRight(5)
+              else validJson.fileName
+            val combined = (".", fileNameWithoutExtension)
+            (jsonPathLines, ddl.content.split("\n").toList, ddl.warnings, combined).success
+          }
+          case "redshift" => {                // procrss with self describing info
+            SF.getSelfDescElems(validJson.content).map { self =>
+              val ddl = RDG.getRedshiftDdl(flatSchema, self, schemaName, size)
+              val combined = getFileName(self)
+              (jsonPathLines, ddl.content.split("\n").toList, ddl.warnings, combined)
+            }
+          }
+          case otherDb => parser.usage(s"Error: DDL generation for $otherDb is not supported yet")
+        }
       }
-      val jsonPathLines = JPG.getJsonPathsFile(flatSchema)
 
-      (jsonPathLines, ddl.content.split("\n").toList, ddl.warnings, combined)
+    processed match {
+      case Success(succ) => succ
+      case Failure(str) => str.fail
     }
   }
 

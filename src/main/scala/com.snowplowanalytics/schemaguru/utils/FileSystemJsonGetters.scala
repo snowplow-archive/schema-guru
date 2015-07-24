@@ -58,19 +58,16 @@ trait FileSystemJsonGetters {
     val proccessed = for {
       file <- listAllFiles(dir)
     } yield {
-        try {
-          val content = Source.fromFile(file).mkString
-          parse(content).success
-        } catch {
-          case e: JsonParseException => {
-            val exception = e.getMessage
-            s"File [${file.getAbsolutePath}}] contents failed to parse into JSON: [$exception]".failure
-          }
-          case e: Exception => {
-            val exception = e.getMessage
-            s"File [${file.getAbsolutePath}] fetching and parsing failed: [$exception]".failure
-          }
-        }
+        getJsonFromFile(file)
+      }
+    proccessed.toList
+  }
+
+  def getJsonFilesFromFolder(dir: File): ValidJsonFileList = {
+    val proccessed = for {
+      file <- listAllFiles(dir)
+    } yield {
+        getJsonFileFromFile(file)
       }
     proccessed.toList
   }
@@ -96,6 +93,12 @@ trait FileSystemJsonGetters {
       }
     }
   }
+
+  def getJsonFileFromFile(file: File): Validation[String, JsonFile] =
+    getJsonFromFile(file) match {
+      case Success(json) => JsonFile(file.getName, json).success
+      case Failure(str) => str.fail
+    }
 
   /**
    * Returns a validated List of JSONs from newline-delimited JSON file
