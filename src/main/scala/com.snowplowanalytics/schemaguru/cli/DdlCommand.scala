@@ -20,30 +20,27 @@ import Scalaz._
 // Java
 import java.io.File
 
-// json4s
-import org.json4s.JValue
-
 // Argot
 import org.clapper.argot._
 import ArgotConverters._
 
 // Igluutils
-import com.snowplowanalytics.igluutils.{ SelfDescInfo, GenerationResult }
+import com.snowplowanalytics.igluutils.{ FlatSchema, SelfDescInfo }
 import com.snowplowanalytics.igluutils.generators.{
-  JsonPathGenerator => JPG,
   SchemaFlattener => SF
 }
 import com.snowplowanalytics.igluutils.generators.redshift.{
-  RedshiftDdlGenerator => RDG
+  JsonPathGenerator => JPG,
+  RedshiftDdlGenerator => RDG,
+  Ddl
 }
-import com.snowplowanalytics.igluutils.utils.{
-  FileUtils => FU,
-  StringUtils => SU
-
-}
+import com.snowplowanalytics.igluutils.utils.{ StringUtils => SU }
 
 // This library
-import utils.FileSystemJsonGetters
+import utils.{
+  FileUtils => FU,
+  FileSystemJsonGetters
+}
 
 /**
  * Holds all information passed with CLI and decides how to produce
@@ -97,11 +94,43 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
    */
   private def processAndOutput(file: Validation[String, JsonFile]): Unit = {
     processSchema(file) match {
-      case Success((jsonPathLines, redshiftLines, warningLines, combined)) =>
-        output(jsonPathLines, redshiftLines, warningLines, combined)
+      case Success(ddlOutput) => output(ddlOutput)
       case Failure(str) => {
         println(str)
         sys.exit(1)
+      }
+    }
+  }
+
+  /**
+   * Produces all data required for DDL file, including it's path, filename,
+   * header and DDL object
+   *
+   * @param flatSchema fields mapped to it's properties
+   * @param validJson JSON file, containing filename and content
+   * @param rawMode produce Snowplow-specific info
+   * @return tuple of values filepath, filename, header and DDL (as object)
+   */
+  private def getRedshiftDdlFile(flatSchema: FlatSchema, validJson: JsonFile, rawMode: Boolean): Validation[String, DdlFile] = {
+    val schemaCreate = schemaName match {
+      case Some(s) => Ddl.Schema(s).toDdl + "\n\n"
+      case None if !rawMode => Ddl.Schema("atomic").toDdl + "\n\n"
+      case None => ""
+    }
+    if (rawMode) {
+      val fileNameWithoutExtension =
+        if (validJson.fileName.endsWith(".json")) validJson.fileName.dropRight(5)
+        else validJson.fileName
+      val table = RDG.getTableDdl(flatSchema, fileNameWithoutExtension, schemaName, size, true)
+      val header = RDG.getHeader(validJson.fileName)
+      DdlFile(".", fileNameWithoutExtension, header, schemaCreate, table).success
+    } else {
+      SF.getSelfDescElems(validJson.content).map { self =>
+        val tableName = SU.getTableName(self)
+        val table = RDG.getTableDdl(flatSchema, tableName, schemaName, size, false)
+        val combined = getFileName(self)
+        val header = RDG.getHeader(self)
+        DdlFile(combined._1, combined._2, header, schemaCreate, table)
       }
     }
   }
@@ -112,36 +141,29 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
    * @param json content of JSON file (JSON Schema)
    * @return all validated information as tuple
    */
-  def processSchema(json: Validation[String, JsonFile]): Validation[String, (List[String], List[String], List[String], (String, String))] = {
-    val processed = for {
+  private def processSchema(json: Validation[String, JsonFile]): Validation[String, DdlOutput] = {
+    for {
       validJson <- json
       flatSchema <- SF.flattenJsonSchema(validJson.content, splitProduct)
+      ddlFile <- getRedshiftDdlFile(flatSchema, validJson, rawMode)
     } yield {
-        val jsonPathLines = JPG.getJsonPathsFile(flatSchema, rawMode)
+      db match {
+        case "redshift" => {
+          val jsonPathsLines = if (withJsonPaths) {
+            JPG.getJsonPathsFile(ddlFile.table.columns, rawMode)
+          } else { "" }
 
-        db match {
-          case "redshift" if rawMode => {     // process without self describing info
-            val ddl = RDG.getRawRedshiftDdl(flatSchema, validJson.fileName, schemaName, size)
-            val fileNameWithoutExtension =
-              if (validJson.fileName.endsWith(".json")) validJson.fileName.dropRight(5)
-              else validJson.fileName
-            val combined = (".", fileNameWithoutExtension)
-            (jsonPathLines, ddl.content.split("\n").toList, ddl.warnings, combined).success
-          }
-          case "redshift" => {                // procrss with self describing info
-            SF.getSelfDescElems(validJson.content).map { self =>
-              val ddl = RDG.getRedshiftDdl(flatSchema, self, schemaName, size)
-              val combined = getFileName(self)
-              (jsonPathLines, ddl.content.split("\n").toList, ddl.warnings, combined)
-            }
-          }
-          case otherDb => parser.usage(s"Error: DDL generation for $otherDb is not supported yet")
+          // Snakify columnNames only after JSONPaths was created
+          // TODO: refactor it
+          val tableWithSnakedColumns = ddlFile.table.copy(columns = ddlFile.table.columns.map(c => c.copy(columnName = SU.snakify(c.columnName))))
+
+          DdlOutput(jsonPathsLines,
+            ddlFile.header ++ ddlFile.schemaCreate ++ tableWithSnakedColumns.toDdl,
+            ddlFile.table.warnings,
+            (ddlFile.path, ddlFile.fileName))
         }
+        case otherDb    => parser.usage(s"Error: DDL generation for $otherDb is not supported yet")
       }
-
-    processed match {
-      case Success(succ) => succ
-      case Failure(str) => str.fail
     }
   }
 
@@ -149,22 +171,20 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
    * Outputs JSON Path file and DDL file to files in ``destination``
    * or prints errors
    *
-   * @param jpf list of JSON Paths
-   * @param rdf Validated list of DDL lines
-   * @param combined vendor and filename
+   * @param ddlOutput everything we need to output
    */
-  private def output(jpf: List[String], rdf: List[String], warnings: List[String], combined: (String, String)): Unit = {
-    val (vendor, file) = combined
+  private def output(ddlOutput: DdlOutput): Unit = {
+    val (vendor, file) = ddlOutput.filePath
 
     val ddlDir = new File(outputPath, "sql/" + vendor).getAbsolutePath
-    FU.writeListToFile(file + ".sql", ddlDir, rdf).map(println)
+    FU.writeToFile(file + ".sql", ddlDir, ddlOutput.redshiftDdl).map(println)
 
     if (withJsonPaths) {
       val jsonPathDir = new File(outputPath, "jsonpaths/" + vendor).getAbsolutePath
-      FU.writeListToFile(file + ".json", jsonPathDir, jpf).map(println)
+      FU.writeToFile(file + ".json", jsonPathDir, ddlOutput.jsonPaths).map(println)
     }
-    if (!warnings.isEmpty) {
-      for { warning <- warnings } println("WARNING: " + warning)
+    if (!ddlOutput.warnings.isEmpty) {
+      for { warning <- ddlOutput.warnings } println("WARNING: " + warning)
     }
   }
 }
@@ -178,6 +198,21 @@ object DdlCommand extends GuruCommand {
   val parser = new ArgotParser(programName = generated.ProjectSettings.name + " " + title, compactUsage = true)
 
   def apply(args: Array[String]) = new DdlCommand(args)
+
+  /**
+   * Class holding all information for file with DDL
+   */
+  private case class DdlFile(path: String, fileName: String, header: String, schemaCreate: String, table: Ddl.Table)
+
+  /**
+   * Class holding all information to output
+   *
+   * @param jsonPaths JSONPaths file content
+   * @param redshiftDdl Redshift Table DDL content
+   * @param warnings accumulated list of warnings
+   * @param filePath tuple of dir and file name
+   */
+  private case class DdlOutput(jsonPaths: String, redshiftDdl: String, warnings: List[String], filePath: (String, String))
 
   /**
    * Get the file path and name from self-describing info
