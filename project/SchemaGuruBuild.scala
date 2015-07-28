@@ -45,7 +45,7 @@ object SchemaGuruBuild extends Build {
         Libraries.json4sJackson,
         Libraries.json4sScalaz,
         Libraries.jsonpath,
-        Libraries.igluutils,
+        Libraries.schemaddl,
         // Scala (test only)
         Libraries.specs2,
         Libraries.scalazSpecs2,

@@ -24,17 +24,17 @@ import java.io.File
 import org.clapper.argot._
 import ArgotConverters._
 
-// Igluutils
-import com.snowplowanalytics.igluutils.{ FlatSchema, SelfDescInfo }
-import com.snowplowanalytics.igluutils.generators.{
+// Schema DDL
+import com.snowplowanalytics.schemaddl.{ FlatSchema, SelfDescInfo }
+import com.snowplowanalytics.schemaddl.generators.{
   SchemaFlattener => SF
 }
-import com.snowplowanalytics.igluutils.generators.redshift.{
+import com.snowplowanalytics.schemaddl.generators.redshift.{
   JsonPathGenerator => JPG,
   RedshiftDdlGenerator => RDG,
   Ddl
 }
-import com.snowplowanalytics.igluutils.utils.{ StringUtils => SU }
+import com.snowplowanalytics.schemaddl.utils.{ StringUtils => SU }
 
 // This library
 import utils.{

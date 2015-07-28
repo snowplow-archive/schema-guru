@@ -11,7 +11,7 @@ Current primary features include:
 
 Unlike other tools for deriving JSON Schemas, Schema Guru allows you to derive schema from an unlimited set of instances (making schemas much more precise), and supports many more JSON Schema validation properties.
 
-Schema Guru is used heavily in association with Snowplow's own **[Snowplow] [snowplow]**, **[Iglu] [iglu]** and **[Iglu Utils] [iglu-utils]** projects.
+Schema Guru is used heavily in association with Snowplow's own **[Snowplow] [snowplow]**, **[Iglu] [iglu]** and **[Schema DDL] [schema-ddl]** projects.
 
 ## User Quickstart
 
@@ -335,7 +335,7 @@ limitations under the License.
 
 [snowplow]: https://github.com/snowplow/snowplow
 [iglu]: https://github.com/snowplow/iglu
-[iglu-utils]: https://github.com/snowplow/iglu-utils
+[schema-ddl]: https://github.com/snowplow/schema-ddl
 [self-describing]: http://snowplowanalytics.com/blog/2014/05/15/introducing-self-describing-jsons/
 
 [redshift]: http://aws.amazon.com/redshift/
