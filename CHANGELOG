@@ -1,3 +1,16 @@
+0.3.0 (2015-07-28)
+------------------
+Swap all occurrences of "igluutils" with "schemaddl" to reflect renaming (#97)
+Fix ordering for JSONPaths file (#96)
+Update README to reflect new 0.3.0 (#93)
+Optional self-desc JSON with --raw (#92)
+Correctly handle dir of JSONs (#91)
+Don't check for .ndjson extension when --ndjson set (#74)
+Change default SchemaVer to 1-0-0 (#80)
+Unify CLI options (#90)
+Add `ddl` command which generates JSON Paths files and Redshift DDL (#84)
+Move existing functionality into `derive` command (#83)
+
 0.2.0 (2015-07-01)
 ------------------
 Updated vagrant push to also build and publish webui artifact (#72)

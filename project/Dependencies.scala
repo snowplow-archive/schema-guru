@@ -39,7 +39,7 @@ object Dependencies {
     val specs2           = "2.3.13"
     val scalazSpecs2     = "0.2"
     val scalaCheck       = "1.12.2"
-    val schemaddl     	 = "0.1.0-M1"
+    val schemaddl     	 = "0.1.0"
   }
 
   object Libraries {
