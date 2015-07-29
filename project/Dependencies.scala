@@ -39,6 +39,7 @@ object Dependencies {
     val specs2           = "2.3.13"
     val scalazSpecs2     = "0.2"
     val scalaCheck       = "1.12.2"
+    val schemaddl     	 = "0.1.0"
   }
 
   object Libraries {
@@ -55,6 +56,7 @@ object Dependencies {
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val json4sScalaz     = "org.json4s"                 %% "json4s-scalaz"             % V.json4s
     val jsonpath         = "io.gatling"                 %% "jsonpath"                  % V.jsonpath
+    val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
     // Spray
     val akka             = "com.typesafe.akka"          %% "akka-actor"                % V.akka
     val sprayCan         = "io.spray"                   %% "spray-can"                 % V.spray

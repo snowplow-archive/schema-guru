@@ -30,4 +30,14 @@ package object schemaguru {
    * Type Alias for a Valid list of JSONs
    */
   type ValidJsonList = List[Validation[String, JValue]]
+
+  /**
+   * Class holding JSON with file name
+   */
+  case class JsonFile(fileName: String, content: JValue)
+
+  /**
+   * Type Alias for a Valid list of JSON files
+   */
+  type ValidJsonFileList = List[Validation[String, JsonFile]]
 }
