@@ -11,26 +11,30 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
-package json
-
-// Scalaz
-import scalaz._
-import Scalaz._
+package schema
+package types
 
 // json4s
 import org.json4s._
 
+// This library
+import Helpers.SchemaContext
+
 /**
- * Offer some of JValue instances compare with
- * instances of same type
+ * Special "phantom" zero element for JsonSchema monoid
+ * Represented in JSON as `{}` which will validate ANY JSON
  */
-object JValueOrdering extends Order[JValue] {
-  def order(x: JValue, y: JValue): Ordering = (x, y) match {
-    case (JInt(a), JInt(b))         => a ?|? b
-    case (JString(a), JString(b))   => a ?|? b
-    case (JDouble(a), JDouble(b))   => a ?|? b
-    case (JDecimal(a), JDecimal(b)) => a ?|? b
-    case (JArray(a), JArray(b))     => a.length ?|? b.length
-    case _                          => Ordering.EQ
+case class ZeroSchema(implicit val schemaContext: SchemaContext) extends JsonSchema {
+
+  // empty object
+  def toJson = JObject(Nil)
+
+  def mergeSameType(implicit schemaContext: SchemaContext): PartialFunction[JsonSchema, JsonSchema] = {
+    case other => other
   }
+
+  // should never be called
+  def getType = Set.empty[String]
 }
+
+

@@ -15,19 +15,17 @@ package generators
 
 // json4s
 import org.json4s._
-import org.json4s.JsonDSL._
 
 // Testing
 import org.specs2.Specification
 
-// This project
-import JsonSchemaMerger.mergeJsonSchemas
+// This library
+import schema.types._
+import schema.Helpers.SchemaContext
 
 class MergeSpec extends Specification { def is = s2"""
   Check integer merge
     maintain all types in array                            $maintainTypesInArray
-    merge maximum values                                   $mergeMaximumValues
-    merge minimum values                                   $mergeMinimumValues
     merge two instances                                    $mergeMinimumValuesForInt32
     merge integer with number must result in number        $mergeIntegerWithNumber
     merge two distinct string formats                      $mergeDistinctFormats
@@ -38,61 +36,49 @@ class MergeSpec extends Specification { def is = s2"""
 
   implicit val formats = DefaultFormats
 
-  val StringT: JObject = ("type" -> "string")
-  val IntegerT: JObject = ("type" -> "integer")
-  val DecimalT: JObject = ("type" -> "number")
-  val jObjectWithInt16: JObject = ("properties", ("test_key", IntegerT ~ ("maximum", JInt(3)) ~ ("minimum", JInt(-2))))
-  val jObjectWithInt32: JObject = ("properties", ("test_key", IntegerT ~ ("maximum", JInt(3)) ~ ("minimum", JInt(-34000))))
-  val jObjectWithNumber: JObject = ("properties", ("test_key", DecimalT ~ ("maximum", JDecimal(3.3)) ~ ("minimum", JInt(-34000))))
+  implicit val ctx = SchemaContext(0)
 
-  val jObjectWithUuid: JObject = ("properties", ("test_key", StringT ~ ("format", JString("uuid"))))
-  val jObjectWithDateTime: JObject = ("properties", ("test_key", StringT ~ ("format", JString("date-time"))))
-  val jObjectWithoutFormat: JObject = ("properties", ("test_key", StringT ~ ("format", None)))
+  val StringS = StringSchema()
+  val IntegerS = IntegerSchema()
 
-  def maintainTypesInArray = {
-    val merged = mergeJsonSchemas(List(StringT, StringT, StringT, IntegerT, StringT))
-    (merged \ "type").extract[List[String]] must beEqualTo(List("string", "integer"))
-  }
+  val schemaWithInt16 = ObjectSchema(Map("test_key" -> IntegerSchema(Some(-2), Some(3))))
+  val schemaWithInt32 = ObjectSchema(Map("test_key" -> IntegerSchema(Some(-34000), Some(3))))
+  val schemaWithNumber = ObjectSchema(Map("test_key" -> NumberSchema(Some(-34000), Some(3.3))))
 
-  def mergeMaximumValues = {
-    val merged = mergeJsonSchemas(List(jObjectWithInt16))
-    (merged\ "properties" \ "test_key" \ "maximum").extract[BigInt] must beEqualTo(32767)
-  }
+  val schemaWithUuid = ObjectSchema(Map("test_key" -> StringSchema(format = Some("uuid"))))
+  val schemaWithDateTime = ObjectSchema(Map("test_key" -> StringSchema(format = Some("date-time"))))
+  val schemaWithoutFormat = ObjectSchema(Map("test_key" -> StringSchema()))
 
-  def mergeMinimumValues = {
-    val merged = mergeJsonSchemas(List(jObjectWithInt16))
-    (merged\ "properties" \ "test_key" \ "minimum").extract[BigInt] must beEqualTo(-32768)
-  }
+  def maintainTypesInArray =
+    StringS.merge(IntegerS) must beEqualTo(ProductSchema(stringSchema = Some(StringS), integerSchema = Some(IntegerS)))
 
   def mergeMinimumValuesForInt32 = {
-    val merged = mergeJsonSchemas(List(jObjectWithInt16, jObjectWithInt32))
-    (merged \ "properties" \ "test_key" \ "minimum").extract[BigInt] must beEqualTo(-2147483648)
+    val merged = schemaWithInt16.merge(schemaWithInt32).toJson
+    (merged \ "properties" \ "test_key" \ "minimum").extract[BigInt] must beEqualTo(-34000)
   }
 
   def mergeIntegerWithNumber = {
-    val merged = mergeJsonSchemas(List(jObjectWithInt32, jObjectWithNumber))
-    // TODO: should be plain string, not an array
-    (merged \ "properties" \ "test_key" \ "type").extract[List[String]] must beEqualTo(List("number"))
+    val merged = schemaWithInt32.merge(schemaWithNumber).toJson
+    (merged \ "properties" \ "test_key" \ "type").extract[List[String]] must beEqualTo("number")
   }
 
   def mergeDistinctFormats = {
-    val merged = mergeJsonSchemas(List(jObjectWithUuid, jObjectWithDateTime))
+    val merged = schemaWithUuid.merge(schemaWithDateTime).toJson
     (merged \ "properties" \ "test_key" \ "format").extract[Option[String]] must beNone
   }
 
   def mergeStringWithFormatAndWithout = {
-    val merged = mergeJsonSchemas(List(jObjectWithoutFormat, jObjectWithDateTime))
+    val merged = schemaWithoutFormat.merge(schemaWithDateTime).toJson
     (merged \ "properties" \ "test_key" \ "format").extract[Option[String]] must beNone
   }
 
   def mergeTwoDifferentTypes = {
-    val merged = mergeJsonSchemas(List(jObjectWithDateTime, jObjectWithInt16))
+    val merged = schemaWithDateTime.merge(schemaWithInt16).toJson
     (merged \ "properties" \ "test_key" \ "type").extract[List[String]].sorted must beEqualTo(List("integer", "string"))
   }
 
   def reducePropertiesForProductType = {
-    val merged = mergeJsonSchemas(List(jObjectWithDateTime, jObjectWithInt16))
-    // unreduced property would remain list
+    val merged = schemaWithDateTime.merge(schemaWithInt16).toJson
     (merged \ "properties" \ "test_key" \ "format").extract[String] mustEqual("date-time")
   }
 }

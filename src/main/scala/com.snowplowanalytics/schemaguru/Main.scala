@@ -29,6 +29,7 @@ object Main extends App {
     case (title, command) => title + " - " + command.description
   }.mkString("\n")
 
+  // Parser for main schema-guru command
   private val parser = new ArgotParser(
     programName = generated.ProjectSettings.name,
     compactUsage = true,

@@ -11,34 +11,26 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
-package algebird
-
-// Algebird
-import com.twitter.algebird.Semigroup
+package schema
+package types
 
 // json4s
-import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
 
-// This project
-import generators.JsonSchemaMerger
+// This library
+import Helpers.SchemaContext
 
 /**
- * Being a commutative Semigroup lets us
- * reduce (i.e. merge) JSON Schemas in
- * e.g. a MapReduce environment.
+ * Schema for boolean values
+ * http://spacetelescope.github.io/understanding-json-schema/reference/boolean.html
  */
-class JsonSchemaSemigroup extends Semigroup[JValue] {
+final case class BooleanSchema(implicit val schemaContext: SchemaContext) extends JsonSchema {
 
-  def plus(left: JValue, right: JValue): JValue =
-    JsonSchemaMerger.merge2(left, right)
+  def toJson = ("type" -> "boolean")
 
-  /**
-   * Override this because there is a faster
-   * way to do this sum than reduceLeftOption
-   * on plus.
-   */
-  override def sumOption(iter: TraversableOnce[JValue]): Option[JValue] =
-    JsonSchemaMerger.mergeN(iter)
+  def mergeSameType(implicit schemaContext: SchemaContext) = {
+    case BooleanSchema() => BooleanSchema()
+  }
+
+  def getType = Set("boolean")
 }

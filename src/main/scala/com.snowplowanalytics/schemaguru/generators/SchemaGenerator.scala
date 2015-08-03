@@ -13,45 +13,53 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
+import com.snowplowanalytics.schemaguru.schema.types._
+
+import scalaz._
+import Scalaz._
+
 // Scala
 import scala.annotation.tailrec
+import scala.collection.immutable.SortedSet
 
 // Java
 import java.util.UUID
-import org.apache.commons.validator.routines.{
-  InetAddressValidator,
-  UrlValidator
-}
+
+import org.apache.commons.validator.routines.{InetAddressValidator, UrlValidator}
 import org.joda.time.DateTime
 
 // json4s
 import org.json4s._
-import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods.compact
+
+// This library
+import schema._
+import Helpers._
 
 /**
  * Takes a JSON and converts it into a JsonSchema.
  *
  * TODO List:
- * - Merge the JsonSchema with our BaseSchema
- * - Add ability to pass parameters which we will add to the BaseSchema: description, vendor, name
  * - Add ability to process primitive JSONs: i.e. { "primitive" }
- * - Ensure all matches are exhaustive
  */
-object JsonSchemaGenerator {
+class SchemaGenerator(implicit context: SchemaContext) {
+
+  implicit val monoid = getMonoid(context.enumCardinality)
 
   /**
-   * Object to contain different
-   * types of Json Objects
+   * Validate that on top-level this JSON instance is object or array and
+   * start to recursively convert it to JSON Schema
+   *
+   * @param json content of JSON file that needs to be process
+   * @return validated micro-schema (Schema for a single value) or error
+   *         message if schema can't be derived for this value
    */
-  private object JsonSchemaType {
-    val StringT  = JObject(List(("type", JString("string"))))
-    val IntegerT = JObject(List(("type", JString("integer"))))
-    val DecimalT = JObject(List(("type", JString("number"))))
-    val DoubleT  = JObject(List(("type", JString("number"))))
-    val BooleanT = JObject(List(("type", JString("boolean"))))
-    val NullT    = JObject(List(("type", JString("null"))))
-    val NothingT = JObject(List(("type", JString("null"))))
-  }
+  def jsonToSchema(json: JValue): Validation[String, JsonSchema] =
+    json match {
+      case JObject(x) => subJsonToSchema(json).success
+      case JArray(x)  => subJsonToSchema(json).success
+      case _          => s"JSON instances must contain only objects or arrays. ${compact(json).slice(0, 32)} is unacceptable".fail
+    }
 
   /**
    * Will wrap JObjects and JArrays in JsonSchema
@@ -64,13 +72,11 @@ object JsonSchemaGenerator {
    *        into JsonSchema
    * @return the JsonSchema for the JSON
    */
-  def jsonToSchema(json: JValue): JValue =
+  private def subJsonToSchema(json: JValue): JsonSchema =
     json match {
-      case JObject(x) => ("type", "object") ~
-                         ("properties", jObjectListProcessor(x)) ~
-                         ("additionalProperties", false)
-      case JArray(x)  => ("type", "array") ~ ("items", jArrayListProcessor(x))
-      case _          => null
+      case JObject(x) => ObjectSchema(jObjectListProcessor(x).toMap)
+      case JArray(x)  => jArrayListProcessor(x)
+      case _          => null // will never happen
     }
 
   /**
@@ -80,23 +86,23 @@ object JsonSchemaGenerator {
    *
    * @param jObjectList is the List of elements pulled from
    *        a JObject in the JSON we are processing.
-   * @param accum is the accumulated list of (key, JValues) 
+   * @param accum is the accumulated list of (key, JValues)
    *        we have which will make this function tail recursive
    * @return the contents of the processed JObject list
    */
-  def jObjectListProcessor(jObjectList: List[(String, JValue)], accum: List[(String, JValue)] = List()): List[(String, JValue)] =
+  def jObjectListProcessor(jObjectList: List[(String, JValue)], accum: List[(String, JsonSchema)] = Nil): List[(String, JsonSchema)] =
     jObjectList match {
       case x :: xs => {
-        val jSchema: List[(String, JValue)] = x match {
-          case (k, JObject(v))  => List((k, jsonToSchema(JObject(v))))
-          case (k, JArray(v))   => List((k, jsonToSchema(JArray(v))))
+        val jSchema: List[(String, JsonSchema)] = x match {
+          case (k, JObject(v))  => List((k, subJsonToSchema(JObject(v))))
+          case (k, JArray(v))   => List((k, subJsonToSchema(JArray(v))))
           case (k, JString(v))  => List((k, Annotations.annotateString(v)))
           case (k, JInt(v))     => List((k, Annotations.annotateInteger(v)))
-          case (k, JDecimal(v)) => List((k, Annotations.annotateDecimal(v)))
-          case (k, JDouble(v))  => List((k, Annotations.annotateDouble(v)))
-          case (k, JBool(_))    => List((k, JsonSchemaType.BooleanT))
-          case (k, JNull)       => List((k, JsonSchemaType.NullT))
-          case (k, JNothing)    => List((k, JsonSchemaType.NothingT))
+          case (k, JDecimal(v)) => List((k, Annotations.annotateNumber(v)))
+          case (k, JDouble(v))  => List((k, Annotations.annotateNumber(v)))
+          case (k, JBool(_))    => List((k, BooleanSchema()))
+          case (k, JNull)       => List((k, NullSchema()))
+          case (k, JNothing)    => List((k, NullSchema()))  // should never appear
         }
         jObjectListProcessor(xs, (accum ++ jSchema))
       }
@@ -114,51 +120,37 @@ object JsonSchemaGenerator {
    *        which will make this function tail recursive
    * @return the contents of the processed JArray list
    */
-  def jArrayListProcessor(jArrayList: List[JValue], accum: List[JValue] = List()): JValue =
+  def jArrayListProcessor(jArrayList: List[JValue], accum: List[JsonSchema] = List()): ArraySchema =
     jArrayList match {
       case x :: xs => {
         val jType = x match {
-          case JObject(v)  => jsonToSchema(JObject(v))
-          case JArray(v)   => jsonToSchema(JArray(v))
+          case JObject(v)  => subJsonToSchema(JObject(v))
+          case JArray(v)   => subJsonToSchema(JArray(v))
           case JString(v)  => Annotations.annotateString(v)
           case JInt(v)     => Annotations.annotateInteger(v)
-          case JDecimal(v) => Annotations.annotateDecimal(v)
-          case JDouble(v)  => Annotations.annotateDouble(v)
-          case JBool(_)    => JsonSchemaType.BooleanT
-          case JNull       => JsonSchemaType.NullT
-          case JNothing    => JsonSchemaType.NothingT
+          case JDecimal(v) => Annotations.annotateNumber(v)
+          case JDouble(v)  => Annotations.annotateNumber(v)
+          case JBool(_)    => BooleanSchema()
+          case JNull       => NullSchema()
+          case JNothing    => NullSchema()
         }
         jArrayListProcessor(xs, (accum ++ List(jType)))
       }
       case Nil => {
-        accum match { 
-          case list if list.size == 1 => list(0) 
-          case list                   => JArray(list)
+        accum match {
+          case list if list.size == 1 => ArraySchema(list.head)
+          case list                   => ArraySchema(list.suml) // TODO: suml // here we can produce tuple validation see #101
+                                                                // or may be it is better to not merge (suml) array elements
+                                                                // and left it as is for further steps?
         }
       }
     }
 
   /**
-   * Fills the self-describing JsonSchema parameters
-   *
-   * @param rawSchema is the base schema we are going to
-   *        add values for
-   * @param description The schemas description; example:
-   *        'Schema for a MailChimp subscribe event'
-   * @param vendor The vendor name for this schema; example:
-   *        'com.mailchimp'
-   * @param name The name of the json this schema describes
-   *        example: 'subscribe'
-   * @return the updated jsonschema containing these values
+   * Annotations are properties of schema derived from one value
+   * eg. "127.0.0.1" -> {maxLength: 9, format: ipv4, enum: ["127.0.0.1"]}
+   *     33          -> {minimum: 33, maximum: 33, enum: [33]}
    */
-  def addSelfDescOpts(rawSchema: JValue, description: String, vendor: String, name: String): JValue = 
-    rawSchema transformField {
-      case ("description", JString(_)) => ("description", JString(description))
-      case ("vendor", JString(_))      => ("vendor", JString(vendor))
-      case ("name", JString(_))        => ("name", JString(name))
-    }
-
-
   object Annotations {
     def suggestTimeFormat(string: String): Option[String] = {
       if (string.length > 10) { // TODO: find a better way to exclude truncated ISO 8601:2000 values
@@ -204,7 +196,7 @@ object JsonSchemaGenerator {
     private val patternSuggestions = List(suggestBase64Pattern _)
 
     /**
-     * Tries to guess format of the string
+     * Tries to guess format or pattern of the string
      * If nothing match return "none" format which must be reduced in further transformations
      *
      * @param value is a string we need to recognize
@@ -212,56 +204,46 @@ object JsonSchemaGenerator {
      * @return some format or none if nothing suites
      */
     @tailrec
-    def guessFormat(value: String, suggestions: List[String => Option[String]]): Option[String] = {
+    def suggestAnnotation(value: String, suggestions: List[String => Option[String]]): Option[String] = {
       suggestions match {
         case Nil => None
         case suggestion :: tail => suggestion(value) match {
           case Some(format) => Some(format)
-          case None => guessFormat(value, tail)
+          case None => suggestAnnotation(value, tail)
         }
       }
     }
 
+    // TODO: consider one method name with overloaded argument types
     /**
      * Adds properties to string field
-     * TODO: consider one method name with overloaded arguments
-     *
-     * @return JsonSchemaType with recognized properties
      */
-    def annotateString(value: String) =
-      JsonSchemaType.StringT ~
-      ("format", guessFormat(value, formatSuggestions)) ~
-      ("pattern", guessFormat(value, patternSuggestions)) ~
-      ("enum", JArray(List(value)))
+    def annotateString(value: String): StringSchema =
+      StringSchema(suggestAnnotation(value, formatSuggestions), suggestAnnotation(value, patternSuggestions), enum = SortedSet(value).some)
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce
      * Add itself to enum array
      */
     def annotateInteger(value: BigInt) =
-      JsonSchemaType.IntegerT ~
-      ("minimum", value) ~
-      ("maximum", value) ~
-      ("enum", JArray(List(value)))
+      IntegerSchema(Some(value.toLong), Some(value.toLong), SortedSet(value).some)
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
      * Add itself to enum array
      */
-    def annotateDecimal(value: BigDecimal) =
-      JsonSchemaType.DecimalT ~
-      ("minimum", value) ~
-      ("enum", JArray(List(value)))
-
+    def annotateNumber(value: BigDecimal) =
+      NumberSchema(value.toDouble.some, value.toDouble.some, SortedSet(value.toDouble).some)
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
      * Add itself to enum array
      */
-    def annotateDouble(value: Double) =
-      JsonSchemaType.DoubleT ~
-      ("minimum", value) ~
-      ("enum", JArray(List(value)))
+    def annotateNumber(value: Double) =
+      NumberSchema(value.some, value.some, SortedSet(value).some)
   }
 }
 
+object SchemaGenerator {
+  def apply(implicit schemaContext: SchemaContext) = new SchemaGenerator
+}

@@ -11,22 +11,27 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
-package json
+package schema
+package types
 
-import scala.language.implicitConversions
+// json4s
+import org.json4s.JsonDSL._
 
-import org.json4s._
+// This library
+import Helpers.SchemaContext
 
 /**
- * Often used additions to various json4s types
+ * Schema for null value
+ * http://spacetelescope.github.io/understanding-json-schema/reference/null.html
  */
-object JValueImplicits {
-  implicit class JValueImproved(jValue: JValue) {
-    def removeKey(Key: String): JValue = {
-      jValue.removeField {
-        case (Key, _) => true
-        case _        => false
-      }
-    }
+final case class NullSchema(implicit val schemaContext: SchemaContext) extends JsonSchema {
+
+  def toJson = ("type" -> "null")
+
+  def mergeSameType(implicit schemaContext: SchemaContext): PartialFunction[JsonSchema, JsonSchema] = {
+    case NullSchema() => NullSchema()
   }
+
+  def getType = Set("null")
 }
+
