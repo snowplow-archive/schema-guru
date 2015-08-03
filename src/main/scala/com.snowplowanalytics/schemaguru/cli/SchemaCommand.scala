@@ -17,7 +17,6 @@ package cli
 import java.io.File
 
 // json4s
-import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 // Argot
@@ -100,14 +99,16 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
     case someJsons => {
       segmentSchema match {
         case None => {
-          val result = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
+          val convertResult = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
+          val result = SchemaGuru.mergeAndTransform(convertResult, enumCardinality)
           outputResult(result, outputOption.value, selfDescribing)
         }
         case Some((path, dir)) => {
           val nameToJsonsMapping = JsonPathExtractor.mapByPath(path, jsonList)
           nameToJsonsMapping map {
             case (key, jsons) => {
-              val result = SchemaGuru.convertsJsonsToSchema(jsons, enumCardinality)
+              val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, enumCardinality)
+              val result = SchemaGuru.mergeAndTransform(convertResult, enumCardinality)
               val fileName = key + ".json"
               val file =
                 if (key == "$SchemaGuruFailed") None
@@ -128,19 +129,19 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
      */
     def outputResult(result: SchemaGuruResult, outputFile: Option[String], selfDescribingInfo: Option[SelfDescribingSchema]): Unit = {
       // Make schema self-describing if necessary
-      val schema: JValue = selfDescribingInfo match {
-        case None => result.schema
-        case Some(description) => description.descriptSchema(result.schema)
+      val schema: Schema = selfDescribingInfo match {
+        case None => Schema(result.schema, None)
+        case Some(description) => Schema(result.schema, selfDescribingInfo)
       }
 
       // Print JsonSchema to file or stdout
       outputFile match {
         case Some(file) => {
           val output = new java.io.PrintWriter(file)
-          output.write(pretty(render(schema)))
+          output.write(pretty(render(schema.toJson)))
           output.close()
         }
-        case None => println(pretty(render(schema)))
+        case None => println(pretty(render(schema.toJson)))
       }
 
       // Print errors

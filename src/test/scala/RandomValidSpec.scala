@@ -13,6 +13,9 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
+import scalaz._
+import Scalaz._
+
 // Java
 import com.github.fge.jsonschema.main.{JsonSchema, JsonSchemaFactory}
 import org.joda.time.DateTime
@@ -26,7 +29,7 @@ import org.scalacheck._
 import org.specs2.{Specification, ScalaCheck}
 
 // This project
-import JsonSchemaGenerator.jsonToSchema
+import schema.Helpers._
 
 class RandomValidSpecification extends Specification with ScalaCheck with JsonGen { def is = s2"""
   Derive schema from random generated JSON and validate against itself
@@ -35,13 +38,16 @@ class RandomValidSpecification extends Specification with ScalaCheck with JsonGe
     fail to validate mismatched (Int/String) key           $validateAgainstWrongSchema
   """
 
+  val context = SchemaContext(0)
+  val generator = SchemaGenerator(context)
+
   def validateJsonAgainstDerivedSchema = prop { (json: JValue) =>
     val factory: JsonSchemaFactory  = JsonSchemaFactory.byDefault()
-    val jss = jsonToSchema(json)
-    val derivedSchema = asJsonNode(jss)
-    val schema: JsonSchema = factory.getJsonSchema(derivedSchema)
-
-    schema.validate(asJsonNode(json)).isSuccess must beTrue
+    val jss = generator.jsonToSchema(json)
+    jss.map(s => asJsonNode(s.toJson))
+       .map(factory.getJsonSchema(_))
+       .map(_.validate(asJsonNode(json)))
+       .isSuccess must beTrue
   }.set(maxSize = 20)
 
   def validateJsonAgainstEmptySchema = prop { (json: JValue) =>
@@ -56,10 +62,11 @@ class RandomValidSpecification extends Specification with ScalaCheck with JsonGe
                                                generateJsonWithKeys(Map("mismatched_key" -> arbitraryJString))) {
     (jsonForSchema: JValue, json: JValue) =>
     val factory: JsonSchemaFactory = JsonSchemaFactory.byDefault()
-    val derivedInvalidSchema = asJsonNode(jsonToSchema(jsonForSchema))
-    val invalidSchema: JsonSchema = factory.getJsonSchema(derivedInvalidSchema)
-
-    invalidSchema.validate(asJsonNode(json)).isSuccess must beFalse
+    generator.jsonToSchema(jsonForSchema)
+      .map(s => asJsonNode(s.toJson))
+      .map(factory.getJsonSchema(_))
+      .map(_.validate(asJsonNode(json)))
+      .isSuccess must beFalse
   }
 }
 

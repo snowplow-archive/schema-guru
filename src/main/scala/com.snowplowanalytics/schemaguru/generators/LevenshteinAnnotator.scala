@@ -16,10 +16,6 @@ package generators
 // Scala
 import scala.math.min
 
-// json4s
-import org.json4s._
-import org.json4s.JsonDSL._
-
 object LevenshteinAnnotator {
   /**
    * Alias type for set of string pairs
@@ -35,6 +31,21 @@ object LevenshteinAnnotator {
   val thresholdDistance = 1
 
   /**
+   * Get all pairs of possible duplicated keys
+   *
+   * @param keys set of strings
+   * @return pair of every similar entry
+   */
+  def getDuplicates(keys: Set[String]): KeyPairs =
+    compareSets(keys, keys) map { case (first, second) =>
+      if (first <= second) {
+        (first, second)
+      } else {
+        (second, first)
+      }
+    }
+
+  /**
    * Levenshtein distance function.
    * Measuring the difference between two sequences (strings in our case)
    *
@@ -47,48 +58,6 @@ object LevenshteinAnnotator {
       (prev zip prev.tail zip b).scanLeft(prev.head + 1) {
         case (h, ((d, v), y)) => min(min(h + 1, v + 1), d + (if (x == y) 0 else 1))
       }).last
-  }
-
-  /**
-   * Convert KeyPairs to it's JSON array representation
-   *
-   * @param pairs set of key pairs
-   * @return JSON Array with unique pairs
-   */
-  def pairsToJArray(pairs: KeyPairs): JArray = {
-    val setOfJArrays: Set[JArray] = pairs.map { case (first, second) => {
-      if (first <= second) {      // preserve order, so merge remain associative
-        List(JString(first), JString(second))
-      } else {
-        List(JString(second), JString(first))
-      }
-    }} map(JArray(_))
-    JArray(setOfJArrays.toList)
-  }
-
-  /**
-   * Annotate unreduced accumulated schema with array of
-   * possible duplicates taken from current schema
-   *
-   * @param currentSchema current schema
-   * @param accum unreduced accumulated schema (which will be annotated)
-   * @return unreduced schema with array of possible duplicates
-   */
-  def addPossibleDuplicates(currentSchema: JValue, accum: JValue): JValue = {
-    val schKeys = SchemaType.getFrom(currentSchema).map(_.extractAllKeys)
-    val accKeys = SchemaType.getFrom(accum).map(_.extractAllKeys)
-    val closePairs = (schKeys, accKeys) match {
-      case (Some(s), Some(a)) => compareSets(s, a)
-      case _ => Set.empty[(String, String)]
-    }
-
-    accum match {
-      case obj: JObject => {
-        val duplicates: JObject = ("possibleDuplicates",  pairsToJArray(closePairs))
-        obj.merge((duplicates))
-      }
-      case _ => accum
-    }
   }
 
   /**

@@ -37,13 +37,17 @@ trait SchemaGuruRoutes extends HttpService with HttpJsonGetters with HttpOptions
               complete {
                 val jsons: ValidJsonList = getJsonFromRequest(formData)
                 val cardinality = getCardinality(formData)
-                val result = SchemaGuru.convertsJsonsToSchema(jsons, cardinality)
-                val errors = getErrorsAsJson(result.errors)
+                println(jsons + " --jsons")
+                println(cardinality + " --cardinality")
+                val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, cardinality)
+                println(convertResult + " --convertResult")
+                val mergeResult = SchemaGuru.mergeAndTransform(convertResult, cardinality)
+                val errors = getErrorsAsJson(mergeResult.errors)
                 compact(
                   (("status", "processed"): JObject) ~
-                  ("schema", result.schema) ~
+                  ("schema", mergeResult.schema.toJson) ~
                   ("errors", errors) ~
-                  ("warning", result.warning.map(_.jsonMessage))
+                  ("warning", mergeResult.warning.map(_.jsonMessage))
                 )
               }
             }

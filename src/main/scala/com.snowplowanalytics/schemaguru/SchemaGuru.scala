@@ -18,37 +18,80 @@ import Scalaz._
 
 // This library
 import generators.{
-  JsonSchemaGenerator => JSG,
-  JsonSchemaMerger => JSM
+  SchemaGenerator,
+  LevenshteinAnnotator
 }
+import schema._
+import Helpers.SchemaContext
 
 object SchemaGuru {
   /**
-   * Takes the valid list of JSONs and returns the JsonSchema
-   * Core function of Schema Guru
+   * Takes the valid list of JSONs, converts them into micro-schemas (schemas
+   * which will validate a single value)
+   * Don't forget that inside ``jsonToSchema`` merge happening for
    *
-   * @param list The Validated JSON list
+   * @param jsonList The Validated JSON list
    * @param enumCardinality cardinality for detecting possible enums
-   * @return the final JsonSchema
+   * @return result result of converting instances to micro-schemas
    */
-  // TODO: Turn JsonSchemaGenerator into Akka Actor
-  def convertsJsonsToSchema(list: ValidJsonList, enumCardinality: Int = 0): SchemaGuruResult = {
+  def convertsJsonsToSchema(jsonList: ValidJsonList, enumCardinality: Int): JsonConvertResult = {
 
-    // TODO: Throw error if goodJsons list is Nil
-    val goodJsons = for {
-      Success(json) <- list
+    implicit val context = SchemaContext(enumCardinality)
+
+    val generator = SchemaGenerator(context)
+
+    // TODO: do not iterate lists each time
+
+    // Process all valid JSONs into Schemas
+    val validatedSchemas = for {
+      Success(json) <- jsonList
     } yield {
-      JSG.jsonToSchema(json)
+      generator.jsonToSchema(json)
     }
 
-    val badJsons = for {
-      Failure(err) <- list
+    // Get all valid Schemas (for objects and arrays)
+    val schemas = for {
+      Success(schema) <- validatedSchemas
+    } yield {
+      schema
+    }
+
+    // Get errors for all non-JSONs
+    val invalidJsons = for {
+      Failure(err) <- jsonList
     } yield err
 
-    val schema = JSM.mergeJsonSchemas(goodJsons, enumCardinality = enumCardinality)  // Schema with aux info
+    // Get errors for all unacceptable Schemas (non-objects and non-arrays)
+    val unacceptableJsons = for {
+      Failure(err) <- validatedSchemas
+    } yield err
 
-    val (finalSchema, warning) = SchemaWarning.splitSchemaAndWarnings(schema)
+    JsonConvertResult(schemas, invalidJsons ++ unacceptableJsons)
+  }
 
-    SchemaGuruResult(finalSchema, badJsons.toList, warning)
+  /**
+   * Merge all micro-schemas into one, transform it, analyze for any warnings
+   * like possible duplicated keys
+   *
+   * @param jsonConvertResult result of converting instances to micro-schemas
+   * @param enumCardinality cardinality for detecting possible enums
+   * @return result of merge and transformations with Schema, errors and warnings
+   */
+  def mergeAndTransform(jsonConvertResult: JsonConvertResult, enumCardinality: Int): SchemaGuruResult = {
+
+    implicit val monoid = Helpers.getMonoid(enumCardinality)
+
+    val mergedSchema = jsonConvertResult.schemas.suml
+
+    val schema = mergedSchema match {
+      case complex: SchemaWithTransform[_] =>
+        complex.transform { Helpers.clearEnums(enumCardinality) }
+               .transform { Helpers.encaseNumericRange }
+      case _ => mergedSchema
+    }
+
+    val duplicates = LevenshteinAnnotator.getDuplicates(Helpers.extractKeys(schema))
+
+    SchemaGuruResult(schema, jsonConvertResult.errors, Some(PossibleDuplicatesWarning(duplicates)))
   }
 }
