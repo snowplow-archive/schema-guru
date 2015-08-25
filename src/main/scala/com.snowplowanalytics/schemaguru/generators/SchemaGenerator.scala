@@ -20,7 +20,6 @@ import Scalaz._
 
 // Scala
 import scala.annotation.tailrec
-import scala.collection.immutable.SortedSet
 
 // Java
 import java.util.UUID
@@ -44,7 +43,7 @@ import Helpers._
  */
 class SchemaGenerator(implicit context: SchemaContext) {
 
-  implicit val monoid = getMonoid(context.enumCardinality)
+  implicit val monoid = getMonoid(context)
 
   /**
    * Validate that on top-level this JSON instance is object or array and
@@ -139,7 +138,7 @@ class SchemaGenerator(implicit context: SchemaContext) {
       case Nil => {
         accum match {
           case list if list.size == 1 => ArraySchema(list.head)
-          case list                   => ArraySchema(list.suml) // TODO: suml // here we can produce tuple validation see #101
+          case list                   => ArraySchema(list.suml) // here we can produce tuple validation see #101
                                                                 // or may be it is better to not merge (suml) array elements
                                                                 // and left it as is for further steps?
         }
@@ -214,33 +213,56 @@ class SchemaGenerator(implicit context: SchemaContext) {
       }
     }
 
+    /**
+     * Construct enum only if it is in predefined enum set or enum
+     * cardinality > 0
+     *
+     * @param enumValue JSON value
+     * @return same value wrapped in Option
+     */
+    def constructEnum(enumValue: JValue): Option[List[JValue]] = {
+      lazy val inEnum: Boolean = context.inOneOfEnums(enumValue)
+      if (context.enumCardinality == 0 && context.enumSets.isEmpty) {
+        None
+      } else if (context.enumCardinality > 0 || inEnum) {
+        Some(List(enumValue))
+      } else {
+        None
+      }
+    }
+
     // TODO: consider one method name with overloaded argument types
     /**
      * Adds properties to string field
      */
-    def annotateString(value: String): StringSchema =
-      StringSchema(suggestAnnotation(value, formatSuggestions), suggestAnnotation(value, patternSuggestions), enum = SortedSet(value).some)
+    def annotateString(value: String): StringSchema = {
+      StringSchema(
+        suggestAnnotation(value, formatSuggestions),
+        suggestAnnotation(value, patternSuggestions),
+        enum = constructEnum(JString(value))
+      )
+    }
 
     /**
      * Set value itself as minimum and maximum for future merge and reduce
      * Add itself to enum array
      */
     def annotateInteger(value: BigInt) =
-      IntegerSchema(Some(value.toLong), Some(value.toLong), SortedSet(value).some)
+      IntegerSchema(Some(value.toLong), Some(value.toLong), constructEnum(JInt(value)))
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
      * Add itself to enum array
      */
     def annotateNumber(value: BigDecimal) =
-      NumberSchema(value.toDouble.some, value.toDouble.some, SortedSet(value.toDouble).some)
+      NumberSchema(value.toDouble.some, value.toDouble.some, constructEnum(JDouble(value.toDouble)))
 
     /**
      * Set value itself as minimum. We haven't maximum bounds for numbers
      * Add itself to enum array
      */
     def annotateNumber(value: Double) =
-      NumberSchema(value.some, value.some, SortedSet(value).some)
+      NumberSchema(value.some, value.some, constructEnum(JDouble(value)))
   }
 }
 

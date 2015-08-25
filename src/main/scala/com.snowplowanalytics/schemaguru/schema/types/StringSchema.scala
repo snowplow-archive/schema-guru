@@ -18,9 +18,6 @@ package types
 import scalaz._
 import Scalaz._
 
-// Scala
-import scala.collection.immutable.SortedSet
-
 // json4s
 import org.json4s.JsonDSL._
 import org.json4s._
@@ -41,8 +38,8 @@ final case class StringSchema(
   format: Option[String] = None,
   pattern: Option[String] = None,
   maxLength: Option[Int] = None,
-  enum: Option[SortedSet[String]] = Some(SortedSet.empty[String])
-)(implicit val schemaContext: SchemaContext) extends JsonSchema with SchemaWithEnum[String] {
+  enum: Option[List[JValue]] = Some(Nil)
+)(implicit val schemaContext: SchemaContext) extends JsonSchema with SchemaWithEnum {
 
   def toJson = ("type" -> "string") ~ ("format" -> format) ~ ("pattern" -> pattern) ~ ("maxLength" -> maxLength) ~ ("enum" -> getJEnum)
 
@@ -59,6 +56,6 @@ final case class StringSchema(
 
   def getType = Set("string")
 
-  def jsonConstructor(value: String) = JString(value)
+  override def getJEnum: JValue = enum
 }
 

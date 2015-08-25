@@ -13,10 +13,14 @@
 package com.snowplowanalytics.schemaguru
 package cli
 
+import scalaz._
+import Scalaz._
+
 // Java
 import java.io.File
 
 // json4s
+import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 // Argot
@@ -24,6 +28,8 @@ import org.clapper.argot._
 import org.clapper.argot.ArgotConverters._
 
 // This library
+import generators.PredefinedEnums.predefined
+import schema.Helpers.SchemaContext
 import utils._
 
 /**
@@ -43,6 +49,7 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val cardinalityOption = parser.option[Int](List("enum"), "n", "Cardinality to evaluate enum property")
   val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
   val schemaByOption = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
+  val enumSets = parser.multiOption[String](List("enum-sets"), "set", s"Predefined enum sets (${predefined.keys.mkString(",")})")
 
   // self-describing schema arguments
   val vendorOption = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
@@ -82,6 +89,7 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
   }
 
   val enumCardinality = cardinalityOption.value.getOrElse(0)
+  val schemaContext = SchemaContext(enumCardinality, getEnumSets.flatMap { case Success(l) => List(l); case Failure(_) => Nil })
 
   // Decide where and which files should be parsed
   val jsonList: ValidJsonList =
@@ -99,61 +107,82 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
     case someJsons => {
       segmentSchema match {
         case None => {
-          val convertResult = SchemaGuru.convertsJsonsToSchema(someJsons, enumCardinality)
-          val result = SchemaGuru.mergeAndTransform(convertResult, enumCardinality)
+          val convertResult = SchemaGuru.convertsJsonsToSchema(someJsons, schemaContext)
+          val result = SchemaGuru.mergeAndTransform(convertResult, schemaContext)
           outputResult(result, outputOption.value, selfDescribing)
         }
         case Some((path, dir)) => {
           val nameToJsonsMapping = JsonPathExtractor.mapByPath(path, jsonList)
           nameToJsonsMapping map {
             case (key, jsons) => {
-              val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, enumCardinality)
-              val result = SchemaGuru.mergeAndTransform(convertResult, enumCardinality)
+              val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, schemaContext)
+              val result = SchemaGuru.mergeAndTransform(convertResult, schemaContext)
+              val describingInfo = selfDescribing.map(_.copy(name = Some(key)))
               val fileName = key + ".json"
               val file =
                 if (key == "$SchemaGuruFailed") None
                 else Some(new File(dir, fileName).getAbsolutePath)
-              outputResult(result, file, selfDescribing.map(_.copy(name = Some(key))))
+              outputResult(result, file, describingInfo)
             }
           }
         }
       }
     }
 
-    /**
-     * Print Schema, warnings and errors
-     *
-     * @param result Schema Guru result containing all information
-     * @param outputFile optional path to file for schema output
-     * @param selfDescribingInfo optional info to make shema self-describing
-     */
-    def outputResult(result: SchemaGuruResult, outputFile: Option[String], selfDescribingInfo: Option[SelfDescribingSchema]): Unit = {
-      // Make schema self-describing if necessary
-      val schema: Schema = selfDescribingInfo match {
-        case None => Schema(result.schema, None)
-        case Some(description) => Schema(result.schema, selfDescribingInfo)
-      }
+      /**
+       * Print Schema, warnings and errors
+       *
+       * @param result Schema Guru result containing all information
+       * @param outputFile optional path to file for schema output
+       * @param selfDescribingInfo optional info to make shema self-describing
+       */
+      def outputResult(result: SchemaGuruResult, outputFile: Option[String], selfDescribingInfo: Option[SelfDescribingSchema]): Unit = {
+        // Make schema self-describing if necessary
+        val schema = Schema(result.schema, selfDescribingInfo)
 
-      // Print JsonSchema to file or stdout
-      outputFile match {
-        case Some(file) => {
-          val output = new java.io.PrintWriter(file)
-          output.write(pretty(render(schema.toJson)))
-          output.close()
+        val errors = result.errors ++ getEnumSets.flatMap {
+          case Failure(f) => List(s"Predefined enum [$f] not found")
+          case Success(_) => Nil
         }
-        case None => println(pretty(render(schema.toJson)))
-      }
 
-      // Print errors
-      if (!result.errors.isEmpty) {
-        println("\nErrors:\n " + result.errors.mkString("\n"))
-      }
+        // Print JsonSchema to file or stdout
+        outputFile match {
+          case Some(file) => {
+            val output = new java.io.PrintWriter(file)
+            output.write(pretty(render(schema.toJson)))
+            output.close()
+          }
+          case None => println(pretty(render(schema.toJson)))
+        }
 
-      // Print warnings
-      result.warning match {
-        case Some(warning) => println(warning.consoleMessage)
-        case _ =>
+        // Print errors
+        if (!errors.isEmpty) {
+          println("\nErrors:\n" + errors.mkString("\n"))
+        }
+
+        // Print warnings
+        result.warning match {
+          case Some(warning) => println(warning.consoleMessage)
+          case _ =>
+        }
       }
+  }
+
+  /**
+   * Get validated list of enums predefined in
+   * `generators.PredefinedEnums.predefined` and in filesystem
+   *
+   * @return validated list predefined enums
+   */
+  def getEnumSets: List[Validation[String, JArray]] = {
+    val fileArrays: List[Validation[String, JArray]] =
+      enumSets.value.toList.filterNot(_ == "all").map(arg => getJArrayFromFile(new File(arg)))
+
+    if (enumSets.value.contains("all")) { predefined.values.map(_.success).toList ++ fileArrays }
+    else fileArrays.map {
+      case Success(arr) => arr.success
+      case Failure(key) if predefined.isDefinedAt(key) => predefined(key).success
+      case Failure(arg) => arg.failure
     }
   }
 }

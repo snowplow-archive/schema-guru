@@ -18,12 +18,9 @@ package types
 import scalaz._
 import Scalaz._
 
-// Scala
-import scala.collection.immutable.SortedSet
-
 // json4s
-import org.json4s.JsonDSL._
 import org.json4s._
+import org.json4s.JsonDSL._
 
 // This library
 import Helpers.SchemaContext
@@ -39,8 +36,8 @@ import Helpers.SchemaContext
 final case class IntegerSchema(
   minimum: Option[BigInt] = None,
   maximum: Option[BigInt] = None,
-  enum: Option[SortedSet[BigInt]] = Some(SortedSet.empty[BigInt])
-)(implicit val schemaContext: SchemaContext) extends JsonSchema with SchemaWithEnum[BigInt] {
+  enum: Option[List[JValue]] = Some(Nil)
+)(implicit val schemaContext: SchemaContext) extends JsonSchema with SchemaWithEnum {
 
   def toJson = ("type" -> "integer") ~ ("maximum" -> maximum) ~ ("minimum" -> minimum) ~ ("enum" -> getJEnum)
 
@@ -54,6 +51,6 @@ final case class IntegerSchema(
 
   def getType = Set("integer")
 
-  def jsonConstructor(value: BigInt) = JInt(value)
+  override def getJEnum: JValue = enum
 }
 

@@ -39,7 +39,7 @@ final case class ObjectSchema(properties: Map[String, JsonSchema])(implicit val 
   def mergeSameType(implicit schemaContext: SchemaContext) = {
 
     // Get monoid
-    implicit val monoid = getMonoid(schemaContext.enumCardinality)
+    implicit val monoid = getMonoid(schemaContext)
 
     // Return partial function
     { case ObjectSchema(props) => ObjectSchema(properties |+| props) }

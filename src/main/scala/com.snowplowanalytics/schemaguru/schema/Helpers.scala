@@ -17,8 +17,8 @@ package schema
 import scalaz._
 import Scalaz._
 
-// Scala
-import collection.immutable.SortedSet
+// json4s
+import org.json4s._
 
 // This library
 import types._
@@ -31,18 +31,83 @@ object Helpers {
   /**
    * Context used to create and merge schemas and contain all auxiliary
    * information like enum cardinality, special validation requirements and
-   * everything related that user can pass from CLI.
+   * everything related that user can pass from UI.
    * Usually context created based on specific requirements
    * and passing around implicitly everywhere create and merge happening
    *
    * @param enumCardinality maximum limit of enum values
+   * @param enumSets list of all predefined enums
    */
-  case class SchemaContext(enumCardinality: Int)
+  case class SchemaContext(enumCardinality: Int, enumSets: List[JArray] = Nil) {
+    private lazy val sets: List[(Set[JValue], Int)] = enumSets.map { e =>
+      val set = e.arr.toSet
+      val size = set.size
+      (set, size)
+    }
+
+    private lazy val combinedSets: Set[JValue] =
+      sets.foldLeft(Set.empty[JValue])((a, b) => a ++ b._1)
+
+    /**
+     * Check if enum is subset of one of predefined enums
+     *
+     * @param enum Enum values to check
+     * @return true if it is subset
+     */
+    def isPredefinedEnum(enum: JArray): Boolean =
+      getPredefinedEnum(enum).isDefined
+
+    /**
+     * Check if any of sets contains value
+     *
+     * @param value JSON value supposed to be enum value
+     * @return true if value can be enum
+     */
+    def inOneOfEnums(value: JValue): Boolean =
+      combinedSets.contains(value)
+
+    /**
+     * Get first predefined enum which contains all of `enum` values
+     *
+     * @param enum Enum values to check
+     * @return enum set if it exists
+     */
+    def getPredefinedEnum(enum: JArray): Option[List[JValue]] = {
+      val set = enum.arr.toSet
+      sets
+        .filter(_._2 >= set.size)   // throw away too small sets
+        .find { case (possibleSet, size) => { set.subsetOf(possibleSet) } }
+        .map(_._1)
+        .map(_.toList)
+    }
+  }
+
+  /**
+   * Transformation function which substiture enum with one of predefined
+   * enums if all of it's values are contained in predefined
+   *
+   * @param context schema context with list of predefined sets
+   * @return same schema, but with full predefined enum
+   */
+  def substituteEnums(implicit context: SchemaContext): PartialFunction[JsonSchema, JsonSchema] = {
+    case s @ StringSchema(_, _, _, Some(enum)) => {
+      val fullEnum = context.getPredefinedEnum(JArray(enum))
+      if (fullEnum.isDefined) { s.copy(enum = fullEnum) } else { s }
+    }
+    case i @ IntegerSchema(_, _, Some(enum)) => {
+      val fullEnum = context.getPredefinedEnum(JArray(enum))
+      if (fullEnum.isDefined) { i.copy(enum = fullEnum) } else { i }
+    }
+    case n @ NumberSchema(_, _, Some(enum)) => {
+      val fullEnum = context.getPredefinedEnum(JArray(enum))
+      if (fullEnum.isDefined) { n.copy(enum = fullEnum) } else { n }
+    }
+  }
 
   /**
    * Recursively get all keys from all objects which schema contains
    *
-   * @param schema schema to exctract keys from
+   * @param schema schema to extract keys from
    * @return set of keys
    */
   def extractKeys(schema: JsonSchema): Set[String] = schema match {
@@ -116,37 +181,14 @@ object Helpers {
   }
 
   /**
-   * Return partial function which will clear all enums on string, integer and
-   * number schemas which size exceeds specified cardinality
-   *
-   * @param enumCardinality maximum allowed enum cardinality
-   * @return partial function cleaning enums
-   */
-  def clearEnums(enumCardinality: Int): PartialFunction[JsonSchema, JsonSchema] = {
-    def clear[A](emum: SortedSet[A], size: Int): Option[SortedSet[A]] = {
-      if (emum.size > size) { None }
-      else { Some(emum) }
-    }
-    {
-      case str@StringSchema(_, _, _, enum) =>
-        str.copy(enum = enum.flatMap(clear(_, enumCardinality)))(str.schemaContext)
-      case int@IntegerSchema(_, _, enum) =>
-        int.copy(enum = enum.flatMap(clear(_, enumCardinality)))(int.schemaContext)
-      case num@NumberSchema(_, _, enum) =>
-        num.copy(enum = enum.flatMap(clear(_, enumCardinality)))(num.schemaContext)
-    }
-  }
-
-  /**
    * Get monoid instance for JsonSchema with specified enum cardinality
    *
-   * @param enumCardinality enum cardinality
+   * @param schemaContext context with all information for create and merge
    * @return Monoid instance for merge
    */
-  def getMonoid(enumCardinality: Int): Monoid[JsonSchema] = {
+  def getMonoid(schemaContext: SchemaContext): Monoid[JsonSchema] = {
 
-    // Create object
-    implicit val context = SchemaContext(enumCardinality)
+    implicit val context = schemaContext
 
     /**
      * Monoid instance for JSON Schema

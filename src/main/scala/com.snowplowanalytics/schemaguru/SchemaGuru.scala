@@ -21,8 +21,8 @@ import generators.{
   SchemaGenerator,
   LevenshteinAnnotator
 }
-import schema._
-import Helpers.SchemaContext
+import schema.Helpers._
+import schema.SchemaWithTransform
 
 object SchemaGuru {
   /**
@@ -31,12 +31,10 @@ object SchemaGuru {
    * Don't forget that inside ``jsonToSchema`` merge happening for
    *
    * @param jsonList The Validated JSON list
-   * @param enumCardinality cardinality for detecting possible enums
+   * @param context cardinality for detecting possible enums
    * @return result result of converting instances to micro-schemas
    */
-  def convertsJsonsToSchema(jsonList: ValidJsonList, enumCardinality: Int): JsonConvertResult = {
-
-    implicit val context = SchemaContext(enumCardinality)
+  def convertsJsonsToSchema(jsonList: ValidJsonList, context: SchemaContext): JsonConvertResult = {
 
     val generator = SchemaGenerator(context)
 
@@ -74,23 +72,23 @@ object SchemaGuru {
    * like possible duplicated keys
    *
    * @param jsonConvertResult result of converting instances to micro-schemas
-   * @param enumCardinality cardinality for detecting possible enums
+   * @param schemaContext context with all information for create and merge
    * @return result of merge and transformations with Schema, errors and warnings
    */
-  def mergeAndTransform(jsonConvertResult: JsonConvertResult, enumCardinality: Int): SchemaGuruResult = {
+  def mergeAndTransform(jsonConvertResult: JsonConvertResult, schemaContext: SchemaContext): SchemaGuruResult = {
 
-    implicit val monoid = Helpers.getMonoid(enumCardinality)
+    implicit val monoid = getMonoid(schemaContext)
 
     val mergedSchema = jsonConvertResult.schemas.suml
 
     val schema = mergedSchema match {
       case complex: SchemaWithTransform[_] =>
-        complex.transform { Helpers.clearEnums(enumCardinality) }
-               .transform { Helpers.encaseNumericRange }
+        complex.transform { encaseNumericRange }
+               .transform { substituteEnums(schemaContext) }
       case _ => mergedSchema
     }
 
-    val duplicates = LevenshteinAnnotator.getDuplicates(Helpers.extractKeys(schema))
+    val duplicates = LevenshteinAnnotator.getDuplicates(extractKeys(schema))
 
     SchemaGuruResult(schema, jsonConvertResult.errors, Some(PossibleDuplicatesWarning(duplicates)))
   }

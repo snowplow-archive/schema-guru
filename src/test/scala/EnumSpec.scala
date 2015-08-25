@@ -13,6 +13,10 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
+// Scalaz
+import scalaz._
+import Scalaz._
+
 // scala
 import scala.util.parsing.json.JSONArray
 
@@ -21,10 +25,13 @@ import org.specs2.Specification
 import org.specs2.matcher.JsonMatchers
 
 // json4s
+import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 // This library
-import JsonSchemaMerger._
+import schema.JsonSchema
+import schema.types._
+import schema.Helpers._
 
 class EnumSpec extends Specification with JsonMatchers { def is = s2"""
   Check enum detection
@@ -34,27 +41,43 @@ class EnumSpec extends Specification with JsonMatchers { def is = s2"""
     merge 3 enums with 2 cardinality            $mergeWithOverCardinality
   """
 
-  val enum1Schema = parse("""{"type": "object","properties": {"address": {"type": "string","enum": ["AB"]}}}""")
-  val enum2Schema = parse("""{"type": "object","properties": {"address": {"type": "string","enum": ["AC"]}}}""")
-  val enum3Schema = parse("""{"type": "object","properties": {"address": {"type": "string","enum": ["AD"]}}}""")
+  val enum0Ctx = SchemaContext(0)
+  val enum2Ctx = SchemaContext(2)
+  val enum5Ctx = SchemaContext(5)
+
+  val enum1 = List(JString("AB"))
+  val enum2 = List(JString("AC"))
+  val enum3 = List(JString("AD"))
+
+  val enum1Schema = StringSchema(enum = Some(enum1))(enum2Ctx)
+  val enum2Schema = StringSchema(enum = Some(enum2))(enum2Ctx)
+  val enum3Schema = StringSchema(enum = Some(enum3))(enum2Ctx)
 
   def mergeWithoutEnum = {
-    val json = compact(mergeJsonSchemas(List(enum1Schema, enum1Schema), enumCardinality = 0))
+    implicit val monoid = getMonoid(enum0Ctx)
+    val schemas: List[JsonSchema] = List(enum1Schema, enum1Schema)
+    val json = compact(schemas.suml.toJson)
     json must not */("enum" -> ".*".r)
   }
 
   def mergeWithSameEnum = {
-    val json = compact(mergeJsonSchemas(List(enum1Schema, enum1Schema), enumCardinality = 5))
+    implicit val monoid = getMonoid(enum5Ctx)
+    val schemas: List[JsonSchema] = List(enum1Schema, enum1Schema)
+    val json = compact(schemas.suml.toJson)
     json must /("properties") /("address") /("enum" -> JSONArray(List("AB")))
   }
 
   def mergeSeveralEnums = {
-    val json = compact(mergeJsonSchemas(List(enum1Schema, enum1Schema, enum2Schema, enum3Schema), enumCardinality = 5))
+    implicit val monoid = getMonoid(enum5Ctx)
+    val schemas: List[JsonSchema] = List(enum1Schema, enum1Schema, enum2Schema, enum3Schema)
+    val json = compact(schemas.suml.toJson)
     json must /("properties") /("address") /("enum" -> JSONArray(List("AD", "AC", "AB"))) // TODO: ignore order
   }
 
   def mergeWithOverCardinality = {
-    val json = compact(mergeJsonSchemas(List(enum1Schema, enum1Schema, enum2Schema, enum3Schema), enumCardinality = 2))
+    implicit val monoid = getMonoid(enum2Ctx)
+    val schemas: List[JsonSchema] = List(enum1Schema, enum1Schema, enum2Schema, enum3Schema)
+    val json = compact(schemas.suml.toJson)
     json must not */("enum" -> ".*".r)
   }
 }
