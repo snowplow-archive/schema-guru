@@ -151,5 +151,22 @@ trait FileSystemJsonGetters {
       }
     proccessed.flatten
   }
+
+  /**
+   * Return a validated array or error
+   *
+   * @param file file object with JSON-array
+   * @return a validation either be correct JArray or failed key as a string
+   */
+  def getJArrayFromFile(file: File): Validation[String, JArray] = {
+    val json = for {
+      file <- getJsonFromFile(file)
+    } yield file
+
+    json match {
+      case Success(j: JArray) => j.success
+      case _                  => file.getAbsolutePath.fail
+    }
+  }
 }
 

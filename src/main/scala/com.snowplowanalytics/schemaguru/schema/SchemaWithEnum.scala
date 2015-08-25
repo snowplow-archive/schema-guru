@@ -17,9 +17,6 @@ package schema
 import scalaz._
 import Scalaz._
 
-// Scala
-import collection.immutable.SortedSet
-
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
@@ -29,48 +26,47 @@ import Helpers.SchemaContext
 
 /**
  * Trait for Schemas which can have enums
- *
- * @tparam A Scala type for enums
  */
-abstract trait SchemaWithEnum[A] extends JsonSchema {
+abstract trait SchemaWithEnum extends JsonSchema {
   /**
    * Optional set of enum values
    * None will eliminate all following enum merges
    */
-  val enum: Option[SortedSet[A]]
+  val enum: Option[List[JValue]]
 
   /**
-   * How to wrap enum values in JValue
-   * e.g. JString(_) for strings
-   *
-   * @param value value of tparam ``A``
-   * @return constructed JSON
+   * Render `this` enum values to JArray or JNothing
    */
-  def jsonConstructor(value: A): JValue
+  override def getJEnum: JValue = enum.map(transformToJArray)
 
   /**
-   * Render enum values to JArray or JNothing
+   * Render some enum values to JArray or JNothing
    */
-  override def getJEnum: JValue = {
-    enum.map { set =>
-      if (set.size <= schemaContext.enumCardinality) {
-        JArray(set.map(jsonConstructor(_)).toList)
-      } else {
-        JNothing
-      }
-    }
-  }
+  private def transformToJArray(enum: List[JValue]): JArray =
+    JArray(enum)
 
   /**
-   * Merge enums from two schemas. If one of enums is None result will be None
+   * Merge enums from two schemas. If one of enums is None or size of merged
+   * exceeds enum cardinality result will be None
    *
    * @param otherEnum set of enum values
-   * @param enumCardinality cardinality of result set.
+   * @param schemaContext cardinality of result set.
    *                        If result will exceed limit it will be eliminated to None
    * @return merged set of enum values
    */
-  def mergeEnums(otherEnum: Option[SortedSet[A]])(implicit enumCardinality: SchemaContext): Option[SortedSet[A]] = {
-    (enum |@| otherEnum) { _ ++ _ } flatMap { e => if (e.size > enumCardinality.enumCardinality) None else Some(e) }
+  def mergeEnums(otherEnum: Option[List[JValue]])(implicit schemaContext: SchemaContext): Option[List[JValue]] = {
+    (enum |@| otherEnum) { _ ++ _ } flatMap { merged =>
+      if (merged.size <= schemaContext.enumCardinality) {
+        Some(merged.distinct)
+        // TODO: check performance on large sets; isPredefinedEnum is very wasteful on every merge
+        //       and with constructEnum and substituteEnums(schemaContext) it is unnecessary
+        //       also we can maintain keys of matched predefined sets to reduce unnecessary checks
+      } else if (schemaContext.isPredefinedEnum(transformToJArray(merged))) {
+        Some(merged)
+      } else {
+        None
+      }
+    }
   }
 }
 

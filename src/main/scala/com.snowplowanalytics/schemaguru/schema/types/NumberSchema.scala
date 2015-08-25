@@ -18,9 +18,6 @@ package types
 import scalaz._
 import Scalaz._
 
-// Scala
-import scala.collection.immutable.SortedSet
-
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
@@ -39,8 +36,8 @@ import Helpers.SchemaContext
 final case class NumberSchema(
   minimum: Option[Double] = None,
   maximum: Option[Double] = None,
-  enum: Option[SortedSet[Double]] = Some(SortedSet.empty[Double])
-)(implicit val schemaContext: SchemaContext) extends JsonSchema with SchemaWithEnum[Double] {
+  enum: Option[List[JValue]] = Some(Nil)
+)(implicit val schemaContext: SchemaContext) extends JsonSchema with SchemaWithEnum {
 
   def toJson = {
     val json = ("type" -> "number") ~ ("maximum" -> maximum) ~ ("minimum" -> minimum) ~ ("enum" -> getJEnum) transformField {
@@ -55,7 +52,7 @@ final case class NumberSchema(
       NumberSchema(minOrNone(min, minimum), maxOrNone(max, maximum), mergedEnums)
     }
     case IntegerSchema(min, max, otherEnum) => {
-      val mergedEnums = mergeEnums(otherEnum.map(_.map(_.toDouble)))
+      val mergedEnums = mergeEnums(otherEnum)
       NumberSchema(
         (min.map(_.toDouble) |@| minimum) { math.min },
         (max.map(_.toDouble) |@| maximum) { math.max },
@@ -66,6 +63,6 @@ final case class NumberSchema(
 
   def getType = Set("number")
 
-  def jsonConstructor(value: Double) = JDouble(value)
+  override def getJEnum: JValue = enum
 }
 
