@@ -41,9 +41,7 @@ import Helpers._
  * TODO List:
  * - Add ability to process primitive JSONs: i.e. { "primitive" }
  */
-class SchemaGenerator(implicit context: SchemaContext) {
-
-  implicit val monoid = getMonoid(context)
+class SchemaGenerator(implicit val context: SchemaContext) extends Serializable {
 
   /**
    * Validate that on top-level this JSON instance is object or array and
@@ -138,9 +136,15 @@ class SchemaGenerator(implicit context: SchemaContext) {
       case Nil => {
         accum match {
           case list if list.size == 1 => ArraySchema(list.head)
-          case list                   => ArraySchema(list.suml) // here we can produce tuple validation see #101
-                                                                // or may be it is better to not merge (suml) array elements
-                                                                // and left it as is for further steps?
+          case list                   => {
+            // here we can produce tuple validation see #101
+            // or may be it is better to not merge (suml) array elements
+            // and left it as is for further steps?
+
+            implicit val monoid = getMonoid(context)
+
+            ArraySchema(list.suml)
+          }
         }
       }
     }

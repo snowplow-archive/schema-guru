@@ -55,7 +55,8 @@ class JsonObjectAnnotatorSpec extends Specification with JsonMatchers with Valid
       "nullable", "firstArray", "firstArrayWithObjects", "arrId", "type",
       "firstDeepObject", "firstLevel", "againFirst", "someMoreLevels",
       "somethingIn", "anotherKeyIn", "nothingSpecial", "neighbor",
-      "verySpecial", "deepToo", "deepArray", "hello", "boom")
+      "verySpecial", "deepToo", "deepArray", "hello", "boom", "deeplyNested",
+      "keyInSecondObject")
     val json = parse(Source.fromURL(getClass.getResource("/duplicates/schema_with_many_nested_objects.json")).mkString)
     val schema = generator.jsonToSchema(json)
     schema.map(Helpers.extractKeys(_)) must beSuccessful(keys)

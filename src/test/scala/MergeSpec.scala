@@ -59,7 +59,7 @@ class MergeSpec extends Specification { def is = s2"""
 
   def mergeIntegerWithNumber = {
     val merged = schemaWithInt32.merge(schemaWithNumber).toJson
-    (merged \ "properties" \ "test_key" \ "type").extract[List[String]] must beEqualTo("number")
+    (merged \ "properties" \ "test_key" \ "type").extract[String] must beEqualTo("number")
   }
 
   def mergeDistinctFormats = {

@@ -20,6 +20,7 @@ object SchemaGuruBuild extends Build {
   import Dependencies._
   import BuildSettings._
   import WebuiBuildSettings._
+  import SparkjobBuildSettings._
 
   // Configure prompt to show current project.
   override lazy val settings = super.settings :+ {
@@ -65,6 +66,13 @@ object SchemaGuruBuild extends Build {
         Libraries.specs2,
         Libraries.sprayTestkit
       )
+    )
+    .dependsOn(project)
+
+  lazy val sparkjob = Project("schema-guru-sparkjob", file("sparkjob"))
+    .settings(sparkjobBuildSettings: _*)
+    .settings(
+      libraryDependencies ++= Seq(Libraries.sparkCore)
     )
     .dependsOn(project)
 }

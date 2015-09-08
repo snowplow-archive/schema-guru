@@ -87,6 +87,10 @@ package object schemaguru {
     val selfDescribingSchemaURI = "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#"
   }
 
+  type ValidJson = Validation[String, JValue]
+
+  type ValidSchema = Validation[String, JsonSchema]
+
   /**
    * Type Alias for a Valid list of JSONs
    */
