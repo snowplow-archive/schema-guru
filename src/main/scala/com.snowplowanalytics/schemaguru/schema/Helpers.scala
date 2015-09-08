@@ -37,8 +37,9 @@ object Helpers extends Serializable {
    *
    * @param enumCardinality maximum limit of enum values
    * @param enumSets list of all predefined enums
+   * @param quantity quantity of valid JSON instances to process
    */
-  case class SchemaContext(enumCardinality: Int, enumSets: List[JArray] = Nil) {
+  case class SchemaContext(enumCardinality: Int, enumSets: List[JArray] = Nil, quantity: Option[Int] = None) {
     private lazy val sets: List[(Set[JValue], Int)] = enumSets.map { e =>
       val set = e.arr.toSet
       val size = set.size

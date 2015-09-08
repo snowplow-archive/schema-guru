@@ -82,6 +82,11 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
       List(getJsonFileFromFile(input))
     }
 
+  (withJsonPaths, splitProduct) match {
+    case (true, true) => parser.usage("Options --with-json-paths and --split-product can't be used together")
+    case _            =>
+  }
+
   schemaList match {
     case Nil       => parser.usage(s"Directory ${input.getAbsolutePath} does not contain any JSON files")
     case someJsons => someJsons.map(processAndOutput)
