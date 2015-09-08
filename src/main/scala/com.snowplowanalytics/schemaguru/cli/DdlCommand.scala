@@ -60,7 +60,7 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val withJsonPathsFlag = parser.flag("with-json-paths", false, "Produce JSON Paths files with DDL")
   val rawModeFlag = parser.flag("raw", false, "Produce raw DDL without Snowplow-specific data")
   val schemaOption = parser.option[String](List("schema"), "name", "Redshift schema name")
-  val sizeOption = parser.option[Int](List("size"), "n", "Default size for varchar data type")
+  val sizeOption = parser.option[Int](List("varchar-size"), "n", "Default size for varchar data type")
   val splitProductFlag = parser.flag("split-product", false, "Split product types into different keys")
 
   parser.parse(args)
