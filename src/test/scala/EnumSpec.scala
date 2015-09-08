@@ -63,15 +63,15 @@ class EnumSpec extends Specification with JsonMatchers { def is = s2"""
   def mergeWithSameEnum = {
     implicit val monoid = getMonoid(enum5Ctx)
     val schemas: List[JsonSchema] = List(enum1Schema, enum1Schema)
-    val json = compact(schemas.suml.toJson)
-    json must /("properties") /("address") /("enum" -> JSONArray(List("AB")))
+    val json = pretty(schemas.suml.toJson)
+    json must /("enum" -> JSONArray(List("AB")))
   }
 
   def mergeSeveralEnums = {
     implicit val monoid = getMonoid(enum5Ctx)
     val schemas: List[JsonSchema] = List(enum1Schema, enum1Schema, enum2Schema, enum3Schema)
     val json = compact(schemas.suml.toJson)
-    json must /("properties") /("address") /("enum" -> JSONArray(List("AD", "AC", "AB"))) // TODO: ignore order
+    json must /("enum" -> JSONArray(List("AB", "AC", "AD"))) // TODO: ignore order
   }
 
   def mergeWithOverCardinality = {

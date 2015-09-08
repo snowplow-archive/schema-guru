@@ -11,21 +11,28 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
+package sparkjob
 
 // Scalaz
 import scalaz._
 import Scalaz._
 
+// Spark
+import org.apache.spark.rdd.RDD
+
 // json4s
 import org.json4s.JValue
 
 // This library
-import generators.{ SchemaGenerator, LevenshteinAnnotator }
-import schema.JsonSchema
+import schema._
 import schema.Helpers._
-import schema.SchemaWithTransform
+import generators._
 
-object SchemaGuru {
+/**
+ * Copy of schemaguru.SchemaGuru modified for RDD
+ * TODO: rewrite http://stackoverflow.com/questions/32233202/treat-spark-rdd-like-plain-seq
+ */
+object SchemaGuruRDD extends Serializable {
   /**
    * Takes the valid list of JSONs, converts them into micro-schemas (schemas
    * which will validate a single value)
@@ -35,34 +42,36 @@ object SchemaGuru {
    * @param context cardinality for detecting possible enums
    * @return result result of converting instances to micro-schemas
    */
-  def convertsJsonsToSchema(jsonList: List[ValidJson], context: SchemaContext): JsonConvertResult = {
+  def convertsJsonsToSchema(jsonList: RDD[ValidJson], context: SchemaContext): JsonConvertResultRDD = {
 
     val generator = SchemaGenerator(context)
 
-    val validJsons: List[JValue] = jsonList.flatMap {
+    // TODO: find a way to do List-like partition on RDDs to avoid double traverse on jsonList and schemaList
+
+    val validJsons: RDD[JValue] = jsonList.flatMap {
       case Success(json) => List(json)
       case _ => Nil
     }
 
-    val failJsons: List[String] = jsonList.flatMap {
+    val failJsons: RDD[String] = jsonList.flatMap {
       case Failure(str) => List(str)
       case _ => Nil
     }
 
-    val schemaList: List[ValidSchema] =
+    val schemaList: RDD[ValidSchema] =
       validJsons.map(generator.jsonToSchema(_))
 
-    val validSchemas: List[JsonSchema] = schemaList.flatMap {
+    val validSchemas: RDD[JsonSchema] = schemaList.flatMap {
       case Success(json) => List(json)
       case _ => Nil
     }
 
-    val failSchemas: List[String] = schemaList.flatMap {
+    val failSchemas: RDD[String] = schemaList.flatMap {
       case Failure(str) => List(str)
       case _ => Nil
     }
 
-    JsonConvertResult(validSchemas, failJsons ++ failSchemas)
+    JsonConvertResultRDD(validSchemas, failJsons ++ failSchemas)
   }
 
   /**
@@ -73,21 +82,23 @@ object SchemaGuru {
    * @param schemaContext context with all information for create and merge
    * @return result of merge and transformations with Schema, errors and warnings
    */
-  def mergeAndTransform(jsonConvertResult: JsonConvertResult, schemaContext: SchemaContext): SchemaGuruResult = {
+  def mergeAndTransform(jsonConvertResult: JsonConvertResultRDD, schemaContext: SchemaContext): SchemaGuruResultRDD = {
 
-    implicit val monoid = getMonoid(schemaContext)
+    implicit val context = schemaContext
 
-    val mergedSchema = jsonConvertResult.schemas.suml
+    val mergedSchema: JsonSchema = jsonConvertResult.schemas.reduce(_.merge(_))
 
     val schema = mergedSchema match {
       case complex: SchemaWithTransform[_] =>
         complex.transform { encaseNumericRange }
+               .transform { correctMaxLengths }
                .transform { substituteEnums(schemaContext) }
       case _ => mergedSchema
     }
 
     val duplicates = LevenshteinAnnotator.getDuplicates(extractKeys(schema))
 
-    SchemaGuruResult(schema, jsonConvertResult.errors, Some(PossibleDuplicatesWarning(duplicates)))
+    SchemaGuruResultRDD(schema, jsonConvertResult.errors, List(PossibleDuplicatesWarning(duplicates)))
   }
+
 }

@@ -26,7 +26,7 @@ import types._
 /**
  * Helper and transform functions
  */
-object Helpers {
+object Helpers extends Serializable {
 
   /**
    * Context used to create and merge schemas and contain all auxiliary

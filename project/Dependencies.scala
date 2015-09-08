@@ -30,10 +30,11 @@ object Dependencies {
     // Scala
     val argot            = "1.0.3"
     val scalaz7          = "7.0.6"
-    val json4s           = "3.2.11"
+    val json4s           = "3.2.10"   // don't upgrade to 3.2.11 https://github.com/json4s/json4s/issues/212
     val jsonpath         = "0.6.4"
     val akka             = "2.3.9"
     val spray            = "1.3.3"
+    val spark            = "1.3.1"
     // Scala (test only)
     val specs2           = "2.3.13"
     val scalazSpecs2     = "0.2"
@@ -59,6 +60,8 @@ object Dependencies {
     val akka             = "com.typesafe.akka"          %% "akka-actor"                % V.akka
     val sprayCan         = "io.spray"                   %% "spray-can"                 % V.spray
     val sprayRouting     = "io.spray"                   %% "spray-routing"             % V.spray
+    // Spark
+    val sparkCore        = "org.apache.spark"           %% "spark-core"                % V.spark          % "provided"
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2"                    % V.specs2         % "test"
     val scalazSpecs2     = "org.typelevel"              %% "scalaz-specs2"             % V.scalazSpecs2   % "test"

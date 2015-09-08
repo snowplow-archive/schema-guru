@@ -27,11 +27,12 @@ import org.json4s.jackson.JsonMethods._
 // Testing
 import org.scalacheck._
 import org.specs2.{Specification, ScalaCheck}
+import org.specs2.scalaz.ValidationMatchers
 
 // This project
 import schema.Helpers._
 
-class RandomValidSpecification extends Specification with ScalaCheck with JsonGen { def is = s2"""
+class RandomValidSpecification extends Specification with ScalaCheck with JsonGen with ValidationMatchers { def is = s2"""
   Derive schema from random generated JSON and validate against itself
     validate random JSON against derived schema            $validateJsonAgainstDerivedSchema
     validate any JSON against empty schema                 $validateJsonAgainstEmptySchema
@@ -46,8 +47,7 @@ class RandomValidSpecification extends Specification with ScalaCheck with JsonGe
     val jss = generator.jsonToSchema(json)
     jss.map(s => asJsonNode(s.toJson))
        .map(factory.getJsonSchema(_))
-       .map(_.validate(asJsonNode(json)))
-       .isSuccess must beTrue
+       .map(_.validate(asJsonNode(json)).isSuccess) must beSuccessful(true)
   }.set(maxSize = 20)
 
   def validateJsonAgainstEmptySchema = prop { (json: JValue) =>
@@ -65,8 +65,7 @@ class RandomValidSpecification extends Specification with ScalaCheck with JsonGe
     generator.jsonToSchema(jsonForSchema)
       .map(s => asJsonNode(s.toJson))
       .map(factory.getJsonSchema(_))
-      .map(_.validate(asJsonNode(json)))
-      .isSuccess must beFalse
+      .map(_.validate(asJsonNode(json)).isSuccess) must beSuccessful(false)
   }
 }
 
