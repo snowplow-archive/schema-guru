@@ -189,11 +189,15 @@ class SchemaGenerator(implicit val context: SchemaContext) extends Serializable 
     }
 
     def suggestBase64Pattern(string: String): Option[String] = {
-      val regex = "^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
-      if (string.matches(regex)) { Some(regex) }
-      else None
+      context.quantity match {
+        case Some(quantity) if quantity < 10 && string.length < 32 => None  // don't apply suggestion on small instance set
+        case _                               => {
+          val regex = "^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
+          if (string.matches(regex)) { Some(regex) }
+          else None
+        }
+      }
     }
-
 
     private val formatSuggestions = List(suggestUuidFormat _, suggestTimeFormat _, suggestIpFormat _, suggestUrlFormat _)
     private val patternSuggestions = List(suggestBase64Pattern _)

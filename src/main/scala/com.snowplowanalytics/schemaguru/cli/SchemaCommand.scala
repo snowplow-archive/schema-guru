@@ -88,9 +88,6 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
     case _  => parser.usage("--vendor, --name and --schemaver arguments need to be used in conjunction.")
   }
 
-  val enumCardinality = cardinalityOption.value.getOrElse(0)
-  val schemaContext = SchemaContext(enumCardinality, getEnumSets.flatMap { case Success(l) => List(l); case Failure(_) => Nil })
-
   // Decide where and which files should be parsed
   val jsonList: ValidJsonList =
     if (input.isDirectory) ndjsonFlag.value match {
@@ -102,21 +99,32 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
       case _          => List(getJsonFromFile(input))
     }
 
+  val enumCardinality = cardinalityOption.value.getOrElse(0)
+  val baseSchemaContext = SchemaContext(  // will be modified with quantity
+    enumCardinality,
+    getEnumSets.flatMap {   // filter only correct enum sets
+      case Success(l) => List(l)
+      case Failure(_) => Nil
+    }
+  )
+
   jsonList match {
     case Nil => parser.usage("Directory does not contain any JSON files.")
     case someJsons => {
       segmentSchema match {
         case None => {
-          val convertResult = SchemaGuru.convertsJsonsToSchema(someJsons, schemaContext)
-          val result = SchemaGuru.mergeAndTransform(convertResult, schemaContext)
+          val context = baseSchemaContext.copy(quantity = Some(someJsons.filter(_.isSuccess).length))
+          val convertResult = SchemaGuru.convertsJsonsToSchema(someJsons, context)
+          val result = SchemaGuru.mergeAndTransform(convertResult, context)
           outputResult(result, outputOption.value, selfDescribing)
         }
         case Some((path, dir)) => {
           val nameToJsonsMapping = JsonPathExtractor.mapByPath(path, jsonList)
           nameToJsonsMapping map {
             case (key, jsons) => {
-              val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, schemaContext)
-              val result = SchemaGuru.mergeAndTransform(convertResult, schemaContext)
+              val context = baseSchemaContext.copy(quantity = Some(jsons.filter(_.isSuccess).length))
+              val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, context)
+              val result = SchemaGuru.mergeAndTransform(convertResult, context)
               val describingInfo = selfDescribing.map(_.copy(name = Some(key)))
               val fileName = key + ".json"
               val file =
