@@ -72,7 +72,7 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val withJsonPaths = withJsonPathsFlag.value.getOrElse(false)
   val rawMode = rawModeFlag.value.getOrElse(false)
   val schemaName = if (!rawMode && schemaOption.value.isEmpty) { Some("atomic") } else { schemaOption.value }
-  val size = sizeOption.value.getOrElse(255)
+  val size = sizeOption.value.getOrElse(4096)
   val splitProduct = splitProductFlag.value.getOrElse(false)
 
   val schemaList: ValidJsonFileList =
