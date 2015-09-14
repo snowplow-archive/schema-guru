@@ -32,6 +32,9 @@ class MergeSpec extends Specification { def is = s2"""
     merge strings with and without format                  $mergeStringWithFormatAndWithout
     merge two different types produce product              $mergeTwoDifferentTypes
     reduce properties for product types                    $reducePropertiesForProductType
+    merge strings with maxLengths                          $mergeStringsWithMaxLengths
+    merge strings with minLengths                          $mergeStringsWithMinLengths
+    merge product types with maxLengths                    $mergeProductTypeWithMaxLengths
     """
 
   implicit val formats = DefaultFormats
@@ -40,6 +43,9 @@ class MergeSpec extends Specification { def is = s2"""
 
   val StringS = StringSchema()
   val IntegerS = IntegerSchema()
+
+  val StringWithLengths = StringSchema(minLength = Some(3), maxLength = Some(10))
+  val StringWithLengths2 = StringSchema(minLength = Some(5), maxLength = Some(8))
 
   val schemaWithInt16 = ObjectSchema(Map("test_key" -> IntegerSchema(Some(-2), Some(3))))
   val schemaWithInt32 = ObjectSchema(Map("test_key" -> IntegerSchema(Some(-34000), Some(3))))
@@ -80,5 +86,20 @@ class MergeSpec extends Specification { def is = s2"""
   def reducePropertiesForProductType = {
     val merged = schemaWithDateTime.merge(schemaWithInt16).toJson
     (merged \ "properties" \ "test_key" \ "format").extract[String] mustEqual("date-time")
+  }
+
+  def mergeStringsWithMaxLengths = {
+    val merged = StringWithLengths.merge(StringWithLengths2).toJson
+    (merged \ "maxLength").extract[Int] mustEqual(10)
+  }
+
+  def mergeStringsWithMinLengths = {
+    val merged = StringWithLengths2.merge(StringWithLengths).toJson
+    (merged \ "minLength").extract[Int] mustEqual(3)
+  }
+
+  def mergeProductTypeWithMaxLengths = {
+    val merged = IntegerS.merge(StringWithLengths2.merge(StringWithLengths)).toJson
+    (merged \ "maxLength").extract[Int] mustEqual(10)
   }
 }

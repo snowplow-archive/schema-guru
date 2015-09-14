@@ -46,7 +46,8 @@ case class SchemaGuruOptions(
   enumSets: List[String],
   segmentSchema: Option[(String, String)],    // JsonPath, DirPath
   selfDescribing: Option[SelfDescribingSchema],
-  errorsPath: Option[String] = None
+  errorsPath: Option[String] = None,
+  noLength: Boolean = false
 ) {
   /**
    * Get validated list of enums predefined in
@@ -60,4 +61,3 @@ case class SchemaGuruOptions(
     }
   }
 }
-

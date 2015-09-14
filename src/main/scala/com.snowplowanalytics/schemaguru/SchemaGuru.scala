@@ -82,6 +82,7 @@ object SchemaGuru {
     val schema = mergedSchema match {
       case complex: SchemaWithTransform[_] =>
         complex.transform { encaseNumericRange }
+               .transform { correctMaxLengths }
                .transform { substituteEnums(schemaContext) }
       case _ => mergedSchema
     }
