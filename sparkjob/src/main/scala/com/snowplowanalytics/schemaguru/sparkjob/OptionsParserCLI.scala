@@ -43,6 +43,7 @@ object OptionsParserCLI {
     val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
     val schemaByOption = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
     val enumSetsOption = parser.multiOption[String](List("enum-sets"), "set", s"Predefined enum sets (${predefined.keys.mkString(",")})")
+    val noLengthsFlag = parser.flag[Boolean](List("no-length"), "Don't derive minLength and maxLength")
 
     // self-describing schema arguments
     val vendorOption = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
@@ -55,6 +56,7 @@ object OptionsParserCLI {
     parser.parse(args)
 
     val input = inputArgument.value.get // isn't optional
+    val noLengths = noLengthsFlag.value.getOrElse(false)
     outputOption.value match {
       case None    => parser.usage("--output is required for Spark Job")
       case Some(_) =>
@@ -97,8 +99,8 @@ object OptionsParserCLI {
       enumSetsOption.value.toList,
       segmentSchema,
       selfDescribing,
-      errorsPathOption.value
+      errorsPathOption.value,
+      noLengths
     )
   }
 }
-

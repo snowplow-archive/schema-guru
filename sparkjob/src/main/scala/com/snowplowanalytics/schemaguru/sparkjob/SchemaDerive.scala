@@ -81,7 +81,7 @@ object SchemaDerive {
    */
   def process(sc: SparkContext, options: SchemaGuruOptions): RDD[OutputResult] = {
     val enumSets: List[JArray] = options.getEnumSets.flatMap({ case Success(l) => List(l); case Failure(_) => Nil }).toList
-    val schemaContext: SchemaContext = SchemaContext(options.enumCardinality, enumSets)
+    val schemaContext: SchemaContext = SchemaContext(options.enumCardinality, enumSets, deriveLength = !options.noLength)
 
     // Decide where and which files should be parsed
     val jsonList: RDD[ValidJson] = options.ndjson match {

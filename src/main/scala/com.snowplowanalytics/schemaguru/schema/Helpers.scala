@@ -38,8 +38,9 @@ object Helpers extends Serializable {
    * @param enumCardinality maximum limit of enum values
    * @param enumSets list of all predefined enums
    * @param quantity quantity of valid JSON instances to process
+   * @param deriveLength flag to disable minLength/maxLength derivation
    */
-  case class SchemaContext(enumCardinality: Int, enumSets: List[JArray] = Nil, quantity: Option[Int] = None) {
+  case class SchemaContext(enumCardinality: Int, enumSets: List[JArray] = Nil, quantity: Option[Int] = None, deriveLength: Boolean = true) {
     private lazy val sets: List[(Set[JValue], Int)] = enumSets.map { e =>
       val set = e.arr.toSet
       val size = set.size
@@ -84,14 +85,14 @@ object Helpers extends Serializable {
   }
 
   /**
-   * Transformation function which substiture enum with one of predefined
+   * Transformation function which substitute enum with one of predefined
    * enums if all of it's values are contained in predefined
    *
    * @param context schema context with list of predefined sets
    * @return same schema, but with full predefined enum
    */
   def substituteEnums(implicit context: SchemaContext): PartialFunction[JsonSchema, JsonSchema] = {
-    case s @ StringSchema(_, _, _, Some(enum)) => {
+    case s @ StringSchema(_, _, _, _, Some(enum)) => {
       val fullEnum = context.getPredefinedEnum(JArray(enum))
       if (fullEnum.isDefined) { s.copy(enum = fullEnum) } else { s }
     }
@@ -102,6 +103,24 @@ object Helpers extends Serializable {
     case n @ NumberSchema(_, _, Some(enum)) => {
       val fullEnum = context.getPredefinedEnum(JArray(enum))
       if (fullEnum.isDefined) { n.copy(enum = fullEnum) } else { n }
+    }
+  }
+
+  /**
+   * Transformation function which correct string's maxLength for some formats
+   * to prevent it length be too short
+   *
+   * @return same string schema with possibly modified maxLength
+   */
+  def correctMaxLengths: PartialFunction[JsonSchema, JsonSchema] = {
+    case s @ StringSchema(Some(format), _, _, Some(length), _) => {
+      implicit val ctx = s.schemaContext
+      format match {
+        case "ipv4" => s.copy(maxLength = Some(15))
+        case "ipv6" => s.copy(maxLength = Some(39))
+        case "uri"  => s.copy(maxLength = Some(8192))
+        case _      => s
+      }
     }
   }
 

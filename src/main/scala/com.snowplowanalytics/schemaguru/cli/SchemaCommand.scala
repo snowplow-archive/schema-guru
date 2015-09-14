@@ -50,6 +50,7 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
   val schemaByOption = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
   val enumSets = parser.multiOption[String](List("enum-sets"), "set", s"Predefined enum sets (${predefined.keys.mkString(",")})")
+  val noLengthsFlag = parser.flag[Boolean](List("no-length"), "Don't derive minLength and maxLength")
 
   // self-describing schema arguments
   val vendorOption = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
@@ -59,6 +60,8 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
   parser.parse(args)
 
   val input = inputArgument.value.get // isn't optional
+
+  val deriveLengths = !noLengthsFlag.value.getOrElse(false)
 
   // Get arguments for JSON Path segmentation and validate them
   val segmentSchema = (schemaByOption.value, outputOption.value) match {
@@ -105,7 +108,8 @@ class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
     getEnumSets.flatMap {   // filter only correct enum sets
       case Success(l) => List(l)
       case Failure(_) => Nil
-    }
+    },
+    deriveLength = deriveLengths
   )
 
   jsonList match {

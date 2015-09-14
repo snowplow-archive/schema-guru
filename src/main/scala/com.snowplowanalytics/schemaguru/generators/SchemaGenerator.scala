@@ -247,6 +247,8 @@ class SchemaGenerator(implicit val context: SchemaContext) extends Serializable 
       StringSchema(
         suggestAnnotation(value, formatSuggestions),
         suggestAnnotation(value, patternSuggestions),
+        minLength = if (context.deriveLength) Some(value.length) else None,
+        maxLength = if (context.deriveLength) Some(value.length) else None,
         enum = constructEnum(JString(value))
       )
     }
