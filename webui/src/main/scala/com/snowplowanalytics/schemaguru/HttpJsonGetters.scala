@@ -31,11 +31,7 @@ import org.json4s.jackson.JsonMethods._
  */
 trait HttpJsonGetters {
   // TODO: find a better way, add possible failure
-  def getErrorsAsJson(errors: List[String]): JValue = {
-    println(errors)
-    errors.map(parse(_))
-  }
-
+  def getErrorsAsJson(errors: List[String]): JValue = errors.map(parse(_))
 
   /**
    * Decide which data format (plain JSON or NDJSON) request contains and
@@ -46,7 +42,6 @@ trait HttpJsonGetters {
    */
   // TODO: implement ndjson
   def getJsonFromRequest(data: MultipartFormData): ValidJsonList = {
-    println(data)
     val processed: Seq[ValidJsonList] = for {
       field <- data.fields
     } yield {

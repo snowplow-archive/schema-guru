@@ -1,10 +1,9 @@
 oss-playbooks/java7.yml
 oss-playbooks/scala.yml
 oss-playbooks/sbt.yml
-
 oss-playbooks/nodejs.yml
 oss-playbooks/gulp.yml
 oss-playbooks/docker.yml
-
+oss-playbooks/aws-tools.yml
 oss-playbooks/invoke.yml
 oss-playbooks/boto.yml

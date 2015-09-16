@@ -20,7 +20,7 @@ from boto.emr.step import InstallHiveStep, ScriptRunnerStep
 from boto.emr.bootstrap_action import BootstrapAction
 
 DIR_WITH_JAR = "./target/scala-2.10/"
-JAR_FILE  = "schema-guru-sparkjob-0.4.0"
+JAR_FILE  = "schema-guru-sparkjob-0.4.0-M1"
 
 S3_REGIONS = { 'us-east-1': Location.DEFAULT,
                'us-west-1': Location.USWest,
@@ -89,7 +89,7 @@ def run_emr(profile, jar_bucket_name, errors_path, output_path, input_path, ec2_
         "s3n://" + errors_path,              # trailing slash is required
         "--output",
         "s3n://" + output_path,              # ...here too
-        "s3n://" + input_path,               # ...here just bucket name
+        "s3n://" + input_path,               # ...here too
     ]
     steps = [
         InstallHiveStep(),

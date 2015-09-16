@@ -1,18 +1,32 @@
-0.3.0 (2015-07-28)
-------------------
-Swap all occurrences of "igluutils" with "schemaddl" to reflect renaming (#97)
-Fix ordering for JSONPaths file (#96)
-Update README to reflect new 0.3.0 (#93)
-Optional self-desc JSON with --raw (#92)
-Correctly handle dir of JSONs (#91)
-Don't check for .ndjson extension when --ndjson set (#74)
-Change default SchemaVer to 1-0-0 (#80)
-Unify CLI options (#90)
-Add `ddl` command which generates JSON Paths files and Redshift DDL (#84)
-Move existing functionality into `derive` command (#83)
+Version 0.4.0 (2015-09-16)
+--------------------------
+Split core, cli and subprojects (#9)
+Implemented Spark job wrapping Schema Guru (#10)
+JsonSchema upgraded to a Monoid (#23)
+Detection and merge algorithm refactored from transforming raw JSON to use of Schema Types (#52)
+Added detection of known enum sets (#66)
+Fixed misapplying of base64 pattern (#76)
+Fixed incorrect schema for array structures (#81)
+Option --size renamed to --varchar-size (#98)
+Disallowed conjunction of --with-json-paths and --split-product-types options (#99)
+Schema URI comment in header of DDL replaced COMMENT ON statement (#105)
+Now deriving minLength and maxLength for string values (#107)
 
-0.2.0 (2015-07-01)
-------------------
+Version 0.3.0 (2015-07-28)
+--------------------------
+Swapped all occurrences of "igluutils" with "schemaddl" to reflect renaming (#97)
+Fixed ordering for JSONPaths file (#96)
+Updated README to reflect new 0.3.0 (#93)
+Optional self-desc JSON with --raw (#92)
+Now correctly handling dir of JSONs (#91)
+No longer checking for .ndjson extension when --ndjson set (#74)
+Changed default SchemaVer to 1-0-0 (#80)
+Unified CLI options (#90)
+Added `ddl` command which generates JSON Paths files and Redshift DDL (#84)
+Moved existing functionality into `derive` command (#83)
+
+Version 0.2.0 (2015-07-01)
+--------------------------
 Updated vagrant push to also build and publish webui artifact (#72)
 Added NS and CORE settings to Vagrantfile to improve performance (#79)
 Removed bin/jarx-stub.sh from project (#71)
@@ -34,6 +48,6 @@ Created a single-page UI in plain JS (#39)
 Added a sbt sub-project to schema-guru which embeds schema-guru in a Spray server (#53)
 Fixed incorrectly reduced integer and number (#60)
 
-0.1.0 (2015-06-03)
-------------------
+Version 0.1.0 (2015-06-03)
+--------------------------
 Initial release
