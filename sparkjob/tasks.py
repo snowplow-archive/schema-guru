@@ -67,9 +67,9 @@ def upload(profile, jar_bucket):
     k2.set_contents_from_filename(DIR_WITH_JAR + JAR_FILE)
 
 @task
-def run_emr(profile, jar_bucket_name, errors_path, output_path, input_path, ec2_keyname, vpc_subnet_id):
+def run_emr(profile, input_path, output_path, errors_path, log_path, ec2_keyname):
     c = boto.connect_s3(profile_name=profile)
-    jar_bucket = c.get_bucket(jar_bucket_name)
+    jar_bucket = c.get_bucket(input_path.split("/")[0])
     r = get_valid_region(jar_bucket.get_location())
 
     bootstrap_actions = [
@@ -84,12 +84,13 @@ def run_emr(profile, jar_bucket_name, errors_path, output_path, input_path, ec2_
         "yarn-cluster",
         "--class",
         "com.snowplowanalytics.schemaguru.sparkjob.SchemaDeriveJob",
-        "s3://" + jar_bucket_name + "/jar/" + JAR_FILE,
+        "s3://snowplow-hosted-assets/schema-guru/spark/" + JAR_FILE,
+        "--ndjson", # Assuming your source files contain many JSONs each, one per line
         "--errors-path",
         "s3n://" + errors_path,              # trailing slash is required
         "--output",
         "s3n://" + output_path,              # ...here too
-        "s3n://" + input_path,               # ...here just bucket name
+        "s3n://" + input_path,               # ...here too
     ]
     steps = [
         InstallHiveStep(),
@@ -99,7 +100,7 @@ def run_emr(profile, jar_bucket_name, errors_path, output_path, input_path, ec2_
     conn = boto.emr.connect_to_region(r, profile_name=profile)
     job_id = conn.run_jobflow(
         name="Schema Derive Spark",
-        log_uri="s3://" + jar_bucket_name + "/" + "logs",
+        log_uri="s3://" + log_path,
         ec2_keyname=ec2_keyname,
         master_instance_type="m3.xlarge",
         slave_instance_type="m3.xlarge",

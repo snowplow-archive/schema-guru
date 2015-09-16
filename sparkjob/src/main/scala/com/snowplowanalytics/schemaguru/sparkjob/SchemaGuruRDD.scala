@@ -100,5 +100,4 @@ object SchemaGuruRDD extends Serializable {
 
     SchemaGuruResultRDD(schema, jsonConvertResult.errors, List(PossibleDuplicatesWarning(duplicates)))
   }
-
 }
