@@ -237,7 +237,8 @@ object DdlCommand extends GuruCommand {
    */
   private def getFileName(flatSelfElems: SelfDescInfo): (String, String) = {
     // Make the file name
-    val file = flatSelfElems.name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase.concat("_1")
+    val version = "_".concat(flatSelfElems.version.replaceAll("-[0-9]-[0-9]", ""))
+    val file = flatSelfElems.name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase.concat(version)
 
     // Return the vendor and the file name together
     (flatSelfElems.vendor, file)
