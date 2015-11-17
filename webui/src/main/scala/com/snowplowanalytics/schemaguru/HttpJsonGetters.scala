@@ -14,8 +14,8 @@ package com.snowplowanalytics.schemaguru
 package webui
 
 // Scalaz
-import scalaz.Scalaz._
 import scalaz._
+import Scalaz._
 
 // Spray
 import spray.http._
@@ -31,8 +31,7 @@ import org.json4s.jackson.JsonMethods._
  */
 trait HttpJsonGetters {
   // TODO: find a better way, add possible failure
-  def getErrorsAsJson(errors: List[String]): JValue =
-    errors.map(parse(_))
+  def getErrorsAsJson(errors: List[String]): JValue = errors.map(parse(_))
 
   /**
    * Decide which data format (plain JSON or NDJSON) request contains and
@@ -41,6 +40,7 @@ trait HttpJsonGetters {
    * @param data from HTTP-request
    * @return list of JSON and errors
    */
+  // TODO: implement ndjson
   def getJsonFromRequest(data: MultipartFormData): ValidJsonList = {
     val processed: Seq[ValidJsonList] = for {
       field <- data.fields
@@ -48,6 +48,7 @@ trait HttpJsonGetters {
         val content = field.entity.data.asString
         field.name match {
           case Some(name) if name.endsWith(".json") => List(parseJson(content, field))
+          case Some(name) if name == "enumCardinality" => Nil
           case _ => parseNDJson(content, field)
         }
       }

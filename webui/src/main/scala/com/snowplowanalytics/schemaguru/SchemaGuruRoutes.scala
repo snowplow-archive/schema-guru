@@ -23,6 +23,9 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
+// This library
+import schema.Helpers.SchemaContext
+
 trait SchemaGuruRoutes extends HttpService with HttpJsonGetters with HttpOptionsGetter {
   /**
    * Pipe route to ``convertsToJsonToSchema`` core function
@@ -36,14 +39,15 @@ trait SchemaGuruRoutes extends HttpService with HttpJsonGetters with HttpOptions
             detach() {
               complete {
                 val jsons: ValidJsonList = getJsonFromRequest(formData)
-                val cardinality = getCardinality(formData)
-                val result = SchemaGuru.convertsJsonsToSchema(jsons, cardinality)
-                val errors = getErrorsAsJson(result.errors)
+                val context = SchemaContext(getCardinality(formData), quantity = Some(formData.fields.length))
+                val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, context)
+                val mergeResult = SchemaGuru.mergeAndTransform(convertResult, context)
+                val errors = getErrorsAsJson(mergeResult.errors)
                 compact(
                   (("status", "processed"): JObject) ~
-                  ("schema", result.schema) ~
+                  ("schema", mergeResult.schema.toJson) ~
                   ("errors", errors) ~
-                  ("warning", result.warning.map(_.jsonMessage))
+                  ("warning", mergeResult.warning.map(_.jsonMessage))
                 )
               }
             }

@@ -60,7 +60,7 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val withJsonPathsFlag = parser.flag("with-json-paths", false, "Produce JSON Paths files with DDL")
   val rawModeFlag = parser.flag("raw", false, "Produce raw DDL without Snowplow-specific data")
   val schemaOption = parser.option[String](List("schema"), "name", "Redshift schema name")
-  val sizeOption = parser.option[Int](List("size"), "n", "Default size for varchar data type")
+  val sizeOption = parser.option[Int](List("varchar-size"), "n", "Default size for varchar data type")
   val splitProductFlag = parser.flag("split-product", false, "Split product types into different keys")
 
   parser.parse(args)
@@ -71,8 +71,8 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val db = dbOption.value.getOrElse("redshift")
   val withJsonPaths = withJsonPathsFlag.value.getOrElse(false)
   val rawMode = rawModeFlag.value.getOrElse(false)
-  val schemaName = schemaOption.value
-  val size = sizeOption.value.getOrElse(255)
+  val schemaName = if (!rawMode && schemaOption.value.isEmpty) { Some("atomic") } else { schemaOption.value }
+  val size = sizeOption.value.getOrElse(4096)
   val splitProduct = splitProductFlag.value.getOrElse(false)
 
   val schemaList: ValidJsonFileList =
@@ -81,6 +81,11 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
     } else {
       List(getJsonFileFromFile(input))
     }
+
+  (withJsonPaths, splitProduct) match {
+    case (true, true) => parser.usage("Options --with-json-paths and --split-product can't be used together")
+    case _            =>
+  }
 
   schemaList match {
     case Nil       => parser.usage(s"Directory ${input.getAbsolutePath} does not contain any JSON files")
@@ -112,25 +117,22 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
    * @return tuple of values filepath, filename, header and DDL (as object)
    */
   private def getRedshiftDdlFile(flatSchema: FlatSchema, validJson: JsonFile, rawMode: Boolean): Validation[String, DdlFile] = {
-    val schemaCreate = schemaName match {
-      case Some(s) => Ddl.Schema(s).toDdl + "\n\n"
-      case None if !rawMode => Ddl.Schema("atomic").toDdl + "\n\n"
-      case None => ""
-    }
+    val schemaCreate: String = schemaName.map(s => Ddl.Schema(s).toDdl).getOrElse("")
+
     if (rawMode) {
       val fileNameWithoutExtension =
         if (validJson.fileName.endsWith(".json")) validJson.fileName.dropRight(5)
         else validJson.fileName
       val table = RDG.getTableDdl(flatSchema, fileNameWithoutExtension, schemaName, size, true)
-      val header = RDG.getHeader(validJson.fileName)
-      DdlFile(".", fileNameWithoutExtension, header, schemaCreate, table).success
+      val comment = RDG.getTableComment(fileNameWithoutExtension, schemaName, validJson.fileName)
+      DdlFile(".", fileNameWithoutExtension, RDG.RedshiftDdlHeader, schemaCreate, table, comment).success
     } else {
       SF.getSelfDescElems(validJson.content).map { self =>
         val tableName = SU.getTableName(self)
         val table = RDG.getTableDdl(flatSchema, tableName, schemaName, size, false)
         val combined = getFileName(self)
-        val header = RDG.getHeader(self)
-        DdlFile(combined._1, combined._2, header, schemaCreate, table)
+        val comment = RDG.getTableComment(tableName, schemaName, self)
+        DdlFile(combined._1, combined._2, RDG.RedshiftDdlHeader, schemaCreate, table, comment)
       }
     }
   }
@@ -157,10 +159,15 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
           // TODO: refactor it
           val tableWithSnakedColumns = ddlFile.table.copy(columns = ddlFile.table.columns.map(c => c.copy(columnName = SU.snakify(c.columnName))))
 
-          DdlOutput(jsonPathsLines,
-            ddlFile.header ++ ddlFile.schemaCreate ++ tableWithSnakedColumns.toDdl,
+          DdlOutput(
+            jsonPathsLines,
+            ddlFile.header ++ "\n\n" ++
+            ddlFile.schemaCreate ++ "\n\n" ++
+            tableWithSnakedColumns.toDdl ++ "\n\n" ++
+            ddlFile.comment.toDdl,
             ddlFile.table.warnings,
-            (ddlFile.path, ddlFile.fileName))
+            (ddlFile.path, ddlFile.fileName)
+          )
         }
         case otherDb    => parser.usage(s"Error: DDL generation for $otherDb is not supported yet")
       }
@@ -202,7 +209,14 @@ object DdlCommand extends GuruCommand {
   /**
    * Class holding all information for file with DDL
    */
-  private case class DdlFile(path: String, fileName: String, header: String, schemaCreate: String, table: Ddl.Table)
+  private case class DdlFile(
+    path: String,
+    fileName: String,
+    header: String,
+    schemaCreate: String,
+    table: Ddl.Table,
+    comment: Ddl.Comment
+  )
 
   /**
    * Class holding all information to output

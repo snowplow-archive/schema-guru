@@ -30,16 +30,16 @@ object Dependencies {
     // Scala
     val argot            = "1.0.3"
     val scalaz7          = "7.0.6"
-    val algebird         = "0.8.1"
-    val json4s           = "3.2.11"
+    val json4s           = "3.2.10"   // don't upgrade to 3.2.11 https://github.com/json4s/json4s/issues/212
     val jsonpath         = "0.6.4"
+    val schemaddl     	 = "0.2.0"
     val akka             = "2.3.9"
     val spray            = "1.3.3"
+    val spark            = "1.3.1"
     // Scala (test only)
     val specs2           = "2.3.13"
     val scalazSpecs2     = "0.2"
     val scalaCheck       = "1.12.2"
-    val schemaddl     	 = "0.1.0"
   }
 
   object Libraries {
@@ -52,7 +52,6 @@ object Dependencies {
     // Scala
     val argot            = "org.clapper"                %% "argot"                     % V.argot
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
-    val algebird         = "com.twitter"                %% "algebird-core"             % V.algebird
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val json4sScalaz     = "org.json4s"                 %% "json4s-scalaz"             % V.json4s
     val jsonpath         = "io.gatling"                 %% "jsonpath"                  % V.jsonpath
@@ -61,6 +60,8 @@ object Dependencies {
     val akka             = "com.typesafe.akka"          %% "akka-actor"                % V.akka
     val sprayCan         = "io.spray"                   %% "spray-can"                 % V.spray
     val sprayRouting     = "io.spray"                   %% "spray-routing"             % V.spray
+    // Spark
+    val sparkCore        = "org.apache.spark"           %% "spark-core"                % V.spark          % "provided"
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2"                    % V.specs2         % "test"
     val scalazSpecs2     = "org.typelevel"              %% "scalaz-specs2"             % V.scalazSpecs2   % "test"

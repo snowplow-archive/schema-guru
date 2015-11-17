@@ -2,6 +2,7 @@
 *.log
 .idea
 .DS_Store
+*.pyc
 
 # Scala worksheets
 src/test/scala/*.sc

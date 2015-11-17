@@ -13,29 +13,24 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
-// Scala
-import scala.io.Source
-import scala.util.parsing.json.JSONArray
-
 // specs2
 import org.specs2.Specification
-import org.specs2.matcher.JsonMatchers
-
-// json4s
-import org.json4s.JsonAST._
-import org.json4s.jackson.JsonMethods._
 
 // This library
 import LevenshteinAnnotator._
 
-class DuplicatedKeysSpec extends Specification with JsonMatchers { def is = s2"""
+class DuplicatedKeysSpec extends Specification  { def is = s2"""
   Check enum detection
-    merge with zero cardinality                 $calculateLevenshteinDistance
-    merge with zero cardinality                 $calculateLevenshteinDistance1
-    merge with zero cardinality                 $calculateLevenshteinDistance2
-    merge with zero cardinality                 $eliminateIdenticalPairs
-    merge with zero cardinality                 $mergeSimilarPairs
-    merge with zero cardinality                 $mergeSchemasWithDuplicates
+    calculate distance for different cases            $calculateLevenshteinDistance
+    calculate distance for snake case                 $calculateLevenshteinDistance1
+    distance for identical strings is 0               $calculateLevenshteinDistance2
+    cross product for short (less 4) key is empty     $crossProductForShortKeys
+    cross product for one and two keys                $crossProductForOneAndTwoKeys
+    handle snake_case and camelCase                   $handleSnakeAndCamelCases
+    skip short (less 4) keys                          $dontHandleShortKeys
+    handle one typo                                   $handleOneTypo
+    skip two typos (distance > 1)                     $dontHandleTwoTypos
+    handle typos in three keys                        $handleTyposInThreeKeys
   """
 
   def calculateLevenshteinDistance = {
@@ -50,19 +45,32 @@ class DuplicatedKeysSpec extends Specification with JsonMatchers { def is = s2""
     calculateDistance("sameKey", "sameKey") must beEqualTo(0)
   }
 
-  def eliminateIdenticalPairs = {
-    val result = JArray(List(JArray(List(JString("one"), JString("two")))))
-    pairsToJArray(Set(("one", "two"), ("two", "one"), ("one", "two"))) must beEqualTo(result)
+  def crossProductForShortKeys = {
+    crossProduct(Set("aaa"), Set("bbbb")) must beEqualTo(Set())
   }
 
-  def mergeSimilarPairs = {
-    val result = JArray(List(JArray(List(JString("one"), JString("two"))), JArray(List(JString("one"), JString("to")))))
-    pairsToJArray(Set(("one", "two"), ("to", "one"))) must beEqualTo(result)
+  def crossProductForOneAndTwoKeys = {
+    crossProduct(Set("aaaa"), Set("bbbb", "cccc")) must beEqualTo(Set(("aaaa", "bbbb"), ("aaaa", "cccc")))
   }
 
-  def mergeSchemasWithDuplicates = {
-    val json = Source.fromURL(getClass.getResource("/duplicates/schema1.json")).mkString
-    json must /("possibleDuplicates" -> JSONArray(List(JSONArray(List("arbitraryKey", "arbitaryKey")))))
+  def handleSnakeAndCamelCases = {
+    getDuplicates(Set("differentCase", "different_case")) must beEqualTo(Set(("differentCase", "different_case")))
+  }
+
+  def dontHandleShortKeys = {
+    getDuplicates(Set("short", "sho")) must beEqualTo(Set())
+  }
+
+  def handleOneTypo = {
+    getDuplicates(Set("oneTypo", "oneType")) must beEqualTo(Set(("oneType", "oneTypo")))
+  }
+
+  def dontHandleTwoTypos = {
+    getDuplicates(Set("twoTypos", "twoTyped")) must beEqualTo(Set())
+  }
+
+  def handleTyposInThreeKeys = {
+    getDuplicates(Set("oneTypo", "oneType", "oneTipo")) must beEqualTo(Set(("oneType", "oneTypo"), ("oneTipo", "oneTypo")))
   }
 }
 

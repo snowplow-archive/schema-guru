@@ -16,28 +16,45 @@ package generators
 // specs2
 import org.specs2.Specification
 
-// This project
-import JsonSchemaGenerator.Annotations
+// This library
+import schema.Helpers.SchemaContext
 
 class StringPatternAnnotationSpec extends Specification { def is = s2"""
   Check string type annotations
-    recognize base63                          $recognizeBase64
-    do not recognize invalid base64           $doNotRecognizeIncorrectBase64
-    annotate field with base64 pattern        $annotateFieldWithBase64
+    recognize base64 on big quantity               $recognizeBase64
+    don't recognize base64 on small quantity       $doNotRecognizeBase64OnSmallQuantity
+    don't recognize invalid base64                 $doNotRecognizeIncorrectBase64
+    recognize long base64 even on small quantity   $recognizeLongBase64
+    annotate field with base64 pattern             $annotateFieldWithBase64
+    don't annotate if base64 is invalid            $doNotAnnotateFieldWithBase64
     """
+
+  val generatorForSmallQuantity = SchemaGenerator(SchemaContext(0, quantity = Some(1)))
+  val generatorForBigQuantity = SchemaGenerator(SchemaContext(0, quantity = Some(10000)))
 
   val base64Regexp = "^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
 
   val base64 = "aGVsbG8="
+  val longBase64 = "VGhpcyBzdHJpbmcgc2hvdWxkIGJlIG1vcmUgdGhhbiAzMiBzeW1ib2xzIGluIGJhc2U2NA=="
   val incorrectBase64 = "aVsbG="
 
   def recognizeBase64 =
-    Annotations.suggestBase64Pattern(base64) must beSome(base64Regexp)
+    generatorForBigQuantity.Annotations.suggestBase64Pattern(base64) must beSome(base64Regexp)
+
+  def doNotRecognizeBase64OnSmallQuantity =
+    generatorForSmallQuantity.Annotations.suggestBase64Pattern(base64) must beNone
 
   def doNotRecognizeIncorrectBase64 =
-    Annotations.suggestTimeFormat(incorrectBase64) must beNone
+    generatorForBigQuantity.Annotations.suggestBase64Pattern(incorrectBase64) must beNone
+
+  def recognizeLongBase64 =
+    generatorForSmallQuantity.Annotations.suggestBase64Pattern(longBase64) must beSome(base64Regexp)
 
   def annotateFieldWithBase64 =
-    Annotations.annotateString(base64).values must havePair(("pattern", base64Regexp))
+    generatorForBigQuantity.Annotations.annotateString(base64).pattern must beSome(base64Regexp)
+
+  def doNotAnnotateFieldWithBase64 =
+    generatorForSmallQuantity.Annotations.annotateString(base64).pattern must beNone
+
 }
 

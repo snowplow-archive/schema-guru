@@ -1,136 +1,26 @@
-{
-  "type": "object",
-  "properties": {
-    "one": {
-      "type": "null"
-    },
-    "someObject": {
-      "type": "object",
-      "properties": {},
-      "additionalProperties": false
-    },
-    "arrayOfObjects": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "hereString": {
-            "type": "string"
-          },
-          "hereNull": {
-            "type": "null"
-          },
-          "hereAnotherArray": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "key": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 32767
-                },
-                "anotherKey": {
-                  "type": "null"
-                }
-              },
-              "additionalProperties": false
-            }
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    "someNestedObjects": {
-      "type": "object",
-      "properties": {
-        "firstObject": {
-          "type": "object",
-          "properties": {
-            "firstKey": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 32767
-            },
-            "nowObject": {
-              "type": "object",
-              "properties": {},
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        "secondObject": {
-          "type": "object",
-          "properties": {
-            "firstObject": {
-              "type": "object",
-              "properties": {
-                "itShouldBeNull": {
-                  "type": "null"
-                }
-              },
-              "additionalProperties": false
-            },
-            "nowKey": {
-              "type": "null"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "thirdObject": {
-      "type": "object",
-      "properties": {
-        "firstObject": {
-          "type": "object",
-          "properties": {
-            "itShouldBeNull": {
-              "type": "null"
-            },
-            "hereNestedAgain": {
-              "type": "object",
-              "properties": {
-                "nowKey": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
-            "nowKey": {
-              "type": "null"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "nestedObjectWithSpecialKeys": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string"
-        },
-        "properties": {
-          "type": "object",
-          "properties": {
-            "propertyOne": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 32767
-            },
-            "propertyTwo": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    }
-  },
-  "additionalProperties": false
+{"firstKey": 3,
+ "secondKey": "127.0.0.1",
+ "firstObject": {},
+ "firstObjectWithKeys": {"id": 3, "nullable": null},
+ "firstArray": [12, 1],
+ "firstArrayWithObjects": [{"arrId": 32, "type": "string"}, {"keyInSecondObject": 3}],
+ "firstDeepObject": {
+   "firstLevel": 32,
+   "againFirst": {
+     "someMoreLevels": {
+       "somethingIn": 32,
+       "anotherKeyIn": {
+         "nothingSpecial": {
+           "deeplyNested": "2015-11-10 21:33",
+           "neighbor": {}
+         },
+         "verySpecial": {
+           "deepToo": 32,
+           "deepArray": [{"hello": "again"}],
+           "boom": null
+         }
+       }
+     }
+   }
+ }
 }

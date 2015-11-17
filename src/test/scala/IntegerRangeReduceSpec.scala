@@ -11,7 +11,7 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
-package json
+package schema
 
 // json4s
 import org.json4s._
@@ -20,7 +20,7 @@ import org.json4s.jackson.JsonMethods._
 // Testing
 import org.specs2.Specification
 
-class IntegerRangeReduceSpec extends Specification with SchemaIntegerHelper { def is = s2"""
+class IntegerRangeReduceSpec extends Specification { def is = s2"""
   Check integer range
     guess zero as positive                     $guessZero
     guess Int16                                $guessInt16
@@ -31,9 +31,9 @@ class IntegerRangeReduceSpec extends Specification with SchemaIntegerHelper { de
     check Int64 as Long                        $checkInt64Range
     """
 
-  val int16Range = Range(-32768, 32767)   // SchemaIntegerHelper.Range, not Scala built-in
-  val int32Range = Range(-2147483648, 2147483647)
-  val int64Range = Range(-9223372036854775808L, 9223372036854775807L)
+  val int16Range = Helpers.Range(Some(-32768), Some(32767))   // not Scala built-in Range
+  val int32Range = Helpers.Range(Some(-2147483648), Some(2147483647))
+  val int64Range = Helpers.Range(Some(-9223372036854775808L), Some(9223372036854775807L))
 
   val IntegerT  = JObject(List(("type", JString("integer"))))
   val IntegerTWithInt16Range = JObject(List(("type", JString("integer")), ("minimum", JInt(Short.MinValue: Int)), ("maximum", JInt(Short.MaxValue: Int))))
@@ -42,24 +42,24 @@ class IntegerRangeReduceSpec extends Specification with SchemaIntegerHelper { de
   val schemaWithPositiveInt16 = parse("""{"type": "integer", "minimum": [21, 100, 0, 31], "maximum": [30000, 16000, 100]}""")
 
   def guessZero =
-    IntegerFieldReducer(List(0), List(0)).minimumBound must beEqualTo(0)
+    Helpers.guessRange(Some(0), Some(0)).minimum must beSome(0)
 
   def guessInt16 =
-    IntegerFieldReducer(List(-1), List(31000)).minimumBound must beEqualTo(int16Range.minimum)
+    Helpers.guessRange(Some(-1), Some(31000)).minimum must beEqualTo(int16Range.minimum)
 
   def guessInt32Negative =
-    IntegerFieldReducer(List(-34000), List(3000)).minimumBound must beEqualTo(int32Range.minimum)
+    Helpers.guessRange(Some(-34000), Some(3000)).minimum must beEqualTo(int32Range.minimum)
 
   def guessInt64 =
-    IntegerFieldReducer(List(-34000), List(9223372036854775806L)).minimumBound must beEqualTo(int64Range.minimum)
+    Helpers.guessRange(Some(-34000), Some(9223372036854775806L)).minimum must beEqualTo(int64Range.minimum)
 
   def checkInt16Range =
-    int16Range must beEqualTo(Range(Short.MinValue.toInt, Short.MaxValue.toInt))
+    int16Range must beEqualTo(Helpers.Range(Some(Short.MinValue.toInt), Some(Short.MaxValue.toInt)))
 
   def checkInt32Range =
-    int32Range must beEqualTo(Range(Int.MinValue, Int.MaxValue))
+    int32Range must beEqualTo(Helpers.Range(Some(Int.MinValue), Some(Int.MaxValue)))
 
   def checkInt64Range =
-    int64Range must beEqualTo(Range(Long.MinValue, Long.MaxValue))
+    int64Range must beEqualTo(Helpers.Range(Some(Long.MinValue), Some(Long.MaxValue)))
 }
 

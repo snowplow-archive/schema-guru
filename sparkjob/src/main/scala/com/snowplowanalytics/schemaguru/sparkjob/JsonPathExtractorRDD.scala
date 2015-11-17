@@ -11,9 +11,9 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
-package utils
+package sparkjob
 
-// scalaz
+// Scalaz
 import scalaz._
 import Scalaz._
 
@@ -24,8 +24,13 @@ import io.gatling.jsonpath.JsonPath
 // json4s
 import org.json4s.jackson.JsonMethods.compact
 
-object JsonPathExtractor {
+// Spark
+import org.apache.spark.rdd.RDD
 
+/**
+ * Copy of schemaguru.utils.JsonPathExtractor written to process RDDs
+ */
+object JsonPathExtractorRDD extends Serializable {
   val mapper = new ObjectMapper
 
   /**
@@ -38,9 +43,9 @@ object JsonPathExtractor {
     mapper.readValue(json, classOf[Object])
 
   /**
-   * Add default values for some exceptional cases and
-   * remove all special characters from the string also
-   * slice it to 30 chars, so it can be used as file name
+   * Get key content, add default values for some exceptional cases and remove
+   * all special characters from the string also slice it to 30 chars, so it
+   * can be used as file name
    *
    * @param content some optional content to convert
    * @return sliced string without special characters
@@ -56,7 +61,6 @@ object JsonPathExtractor {
       else key.slice(0, 30).replaceAll("[^a-zA-Z0-9.-]", "_")
     case None => "unmatched"
   }
-  
 
   /**
    * Maps content of specified JSON Path to List of JSONs which contains same
@@ -66,25 +70,21 @@ object JsonPathExtractor {
    * @param jsonList the validated JSON list
    * @return Map from content to list of JValues
    */
-  def mapByPath(jsonPath: String, jsonList: List[ValidJson]): Map[String, List[ValidJson]] = {
-    val schemaToJsons = for {
-      Success(json) <- jsonList
-    } yield {
-        val jsonObject = parseJson(compact(json)) // TODO: Can we avoid transforming to String?
+  def mapByPathRDD(jsonPath: String, jsonList: RDD[ValidJson]): RDD[(String, Iterable[ValidJson])] = {
+    jsonList.groupBy {
+      case Success(valid) => {
+        val jsonObject = parseJson(compact(valid))
         JsonPath.query(jsonPath, jsonObject) match {
           case Right(iter) => {
             val content = iter.toList.headOption
-            val key = convertToKey(content)
-            Map(key -> List(json.success))
+            convertToKey(content)
           }
-          case Left(_) => Map.empty[String, ValidJsonList]
+          case Left(_) => "$SchemaGuruFailed"
         }
       }
+      case Failure(_) => "$SchemaGuruFailed"
 
-    val failedJsons = for {
-      Failure(err) <- jsonList
-    } yield Map("$SchemaGuruFailed" -> List(err.failure))
-
-    (failedJsons ++ schemaToJsons).reduce(_ |+| _)
+    }
   }
+
 }

@@ -13,17 +13,11 @@
 package com.snowplowanalytics.schemaguru
 package generators
 
-// json4s
-import org.json4s._
-
 // specs2
 import org.specs2.Specification
 
-// This project
-import JsonSchemaGenerator.Annotations
-
 class StringFormatAnnotationSpec extends Specification { def is = s2"""
-  Check string type annotations
+  Check string format annotations
     recognize UUID                            $recognizeUuid
     recognize ISO date                        $recognizeIsoDate
     skip invalid date                         $doNotRecognizeIncorrectDate
@@ -33,36 +27,35 @@ class StringFormatAnnotationSpec extends Specification { def is = s2"""
     add uri format to string                  $annotateFieldWithUri
     """
 
+  val schemaContext = schema.Helpers.SchemaContext(0)
+  val generator = SchemaGenerator(schemaContext)
+
   val correctUuid = "f0e89550-7fda-11e4-bbe8-22000ad9bf74"
   val correctDate = "2010-01-01T12:00:00+01:00"
   val correctUri = "https://github.com/snowplow/schema-guru"
   val incorrectDate = "2010-13-01T12:00:00+01:00"
   val incorrectDateAsNumString = "23"
   val correctIp = "192.1.1.2"
-  val StringT  = JObject(List(("type", JString("string"))))
-  val StringWithDateT = JObject(List(("type", JString("string")), ("format", JString("date-time"))))
-  val StringWitIp4 = JObject(List(("type", JString("string")), ("format", JString("ipv4"))))
-  val StringWitUri = JObject(List(("type", JString("string")), ("format", JString("uri"))))
 
   def recognizeUuid =
-    Annotations.suggestUuidFormat(correctUuid) must beSome("uuid")
+    generator.Annotations.suggestUuidFormat(correctUuid) must beSome("uuid")
 
   def recognizeIsoDate =
-    Annotations.suggestTimeFormat(correctDate) must beSome("date-time")
+    generator.Annotations.suggestTimeFormat(correctDate) must beSome("date-time")
 
   def doNotRecognizeIncorrectDate =
-    Annotations.suggestTimeFormat(incorrectDate) must beNone
+    generator.Annotations.suggestTimeFormat(incorrectDate) must beNone
 
   def doNotRecognizeIncorrectDateAsNum =
-    Annotations.suggestTimeFormat(incorrectDateAsNumString) must beNone
+    generator.Annotations.suggestTimeFormat(incorrectDateAsNumString) must beNone
 
   def annotateFieldWithDate =
-    Annotations.annotateString(correctDate).values must havePair(("format", "date-time"))
+    generator.Annotations.annotateString(correctDate).format must beSome("date-time")
 
   def annotateFieldWithIp4 =
-    Annotations.annotateString(correctIp).values must havePair(("format", "ipv4"))
+    generator.Annotations.annotateString(correctIp).format must beSome("ipv4")
 
   def annotateFieldWithUri =
-    Annotations.annotateString(correctUri).values must havePair(("format", "uri"))
+    generator.Annotations.annotateString(correctUri).format must beSome("uri")
 }
 

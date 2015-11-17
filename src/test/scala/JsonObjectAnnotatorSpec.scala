@@ -11,7 +11,7 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.schemaguru
-package generators
+package schema
 
 // Scala
 import scala.io.Source
@@ -19,6 +19,8 @@ import scala.io.Source
 // specs2
 import org.specs2.Specification
 import org.specs2.matcher.JsonMatchers
+import org.specs2.scalaz.ValidationMatchers
+
 
 // json4s
 import org.json4s._
@@ -26,13 +28,11 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
 // This library
-import SchemaType._
+import generators.SchemaGenerator
 
-class JsonObjectAnnotatorSpec extends Specification with JsonMatchers { def is = s2"""
+class JsonObjectAnnotatorSpec extends Specification with JsonMatchers with ValidationMatchers { def is = s2"""
   Check JsonObjectAnnotator
     extract all nested keys     $extractAllKeys
-    extract object              $extractObject
-    extract primitive types     $extractPrimitiveTypes
   """
 
   val schemaWithObjectJson: JObject =
@@ -47,23 +47,18 @@ class JsonObjectAnnotatorSpec extends Specification with JsonMatchers { def is =
     ("format" -> "date-time")
 
   def extractAllKeys = {
-    val keys: Set[String] = Set(
-      "firstObject", "someNestedObjects", "someObject", "propertyTwo",
-      "hereNestedAgain", "propertyOne", "secondObject", "itShouldBeNull",
-      "properties", "thirdObject", "firstKey", "nowKey",
-      "nestedObjectWithSpecialKeys", "type", "nowObject", "one",
-      "arrayOfObjects")
+    val context = Helpers.SchemaContext(0)
+    val generator = SchemaGenerator(context)
+
+    val keys = Set(
+      "firstKey", "secondKey", "firstObject", "firstObjectWithKeys", "id",
+      "nullable", "firstArray", "firstArrayWithObjects", "arrId", "type",
+      "firstDeepObject", "firstLevel", "againFirst", "someMoreLevels",
+      "somethingIn", "anotherKeyIn", "nothingSpecial", "neighbor",
+      "verySpecial", "deepToo", "deepArray", "hello", "boom", "deeplyNested",
+      "keyInSecondObject")
     val json = parse(Source.fromURL(getClass.getResource("/duplicates/schema_with_many_nested_objects.json")).mkString)
-    getFrom(json).map(_.extractAllKeys) must beSome[Set[String]](keys)
-  }
-
-  def extractObject = {
-    val schemaWithObject = ObjectType(Map("key" -> ("type", "string")), false, List("string", "object"))
-    getFrom(schemaWithObjectJson) must beSome(schemaWithObject)
-  }
-
-  def extractPrimitiveTypes = {
-    val schemaWithPrimitiveTypes = PrimitiveType(List("string", "number"))
-    getFrom(schemaWithPrimitiveTypesJson) must beSome(schemaWithPrimitiveTypes)
+    val schema = generator.jsonToSchema(json)
+    schema.map(Helpers.extractKeys(_)) must beSuccessful(keys)
   }
 }
