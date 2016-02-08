@@ -18,8 +18,8 @@ Schema Guru is used heavily in association with Snowplow's own **[Snowplow] [sno
 Download the latest Schema Guru from Bintray:
 
 ```bash
-$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_0.4.0.zip
-$ unzip schema_guru_0.4.0.zip
+$ wget http://dl.bintray.com/snowplow/snowplow-generic/schema_guru_0.5.0.zip
+$ unzip schema_guru_0.5.0.zip
 ```
 
 Assuming you have a recent JVM installed.
@@ -33,31 +33,31 @@ You can use as input either single JSON file or directory with JSON instances (i
 Following command will print JSON Schema to stdout:
 
 ```bash
-$ ./schema-guru-0.4.0 schema {{input}}
+$ ./schema-guru-0.5.0 schema {{input}}
 ```
 
 Also you can specify output file for your schema:
 
 ```bash
-$ ./schema-guru-0.4.0 schema --output {{json_schema_file}} {{input}} 
+$ ./schema-guru-0.5.0 schema --output {{json_schema_file}} {{input}}
 ```
 
 You can also switch Schema Guru into **[NDJSON] [ndjson]** mode, where it will look for newline delimited JSONs:
 
 ```bash
-$ ./schema-guru-0.4.0 schema --ndjson {{input}}
+$ ./schema-guru-0.5.0 schema --ndjson {{input}}
 ```
 
 You can specify the enum cardinality tolerance for your fields. It means that *all* fields which are found to have less than the specified cardinality will be specified in the JSON Schema using the `enum` property.
 
 ```bash
-$ ./schema-guru-0.4.0 schema --enum 5 {{input}}
+$ ./schema-guru-0.5.0 schema --enum 5 {{input}}
 ```
 
 If you know that some particular set of values can appear, but don't want to set big enum cardinality, you may want to specify predefined enum set with ``--enum-sets`` multioption, like this:
 
 ```bash
-$ ./schema-guru-0.4.0 schema --enum-sets iso_4217 --enum-sets iso_3166-1_aplha-3 /path/to/instances
+$ ./schema-guru-0.5.0 schema --enum-sets iso_4217 --enum-sets iso_3166-1_aplha-3 /path/to/instances
 ```
 
 Currently Schema Guru includes following built-in enum sets (written as they should appear in CLI):
@@ -76,7 +76,7 @@ If you need to include very specific enum set, you can define it by yourself in 
 And pass path to this file instead of enum name:
 
 ```bash
-$ ./schema-guru-0.4.0 schema --enum-sets all --enum-sets /path/to/browsers.json /path/to/instances
+$ ./schema-guru-0.5.0 schema --enum-sets all --enum-sets /path/to/browsers.json /path/to/instances
 ```
 
 Schema Guru will derive `minLength` and `maxLength` properties for strings based on shortest and longest strings.
@@ -84,7 +84,7 @@ But this may be a problem if you process small amount of instances.
 To avoid this too strict Schema, you can use `--no-length` option.
 
 ```bash
-$ ./schema-guru-0.4.0 schema --no-length /path/to/few-instances
+$ ./schema-guru-0.5.0 schema --no-length /path/to/few-instances
 ```
 
 #### DDL derivation
@@ -96,25 +96,25 @@ Currently we support DDL only for **[Amazon Redshift] [redshift]**, but in futur
 Following command will just save Redshift (default ``--db`` value) DDL to current dir.
 
 ```bash
-$ ./schema-guru-0.4.0 ddl {{input}}
+$ ./schema-guru-0.5.0 ddl {{input}}
 ```
 
 You also can specify directory for output:
 
 ```bash
-$ ./schema-guru-0.4.0 ddl --output {{ddl_dir}} {{input}}
+$ ./schema-guru-0.5.0 ddl --output {{ddl_dir}} {{input}}
 ```
 
 If you're not a Snowplow Platform user, don't use **[Self-describing Schema] [self-describing]** or just don't want anything specific to it you can produce raw schema:
 
 ```bash
-$ ./schema-guru-0.4.0 ddl --raw {{input}}
+$ ./schema-guru-0.5.0 ddl --raw {{input}}
 ```
 
 You may also want to get JSONPaths file for Redshift's **[COPY] [redshift-copy]** command. It will place ``jsonpaths`` dir alongside with ``sql``:
 
 ```bash
-$ ./schema-guru-0.4.0 ddl --with-json-paths {{input}}
+$ ./schema-guru-0.5.0 ddl --with-json-paths {{input}}
 ```
 
 The most embarrassing part of shifting from dynamic-typed world to static-typed is product types (or union types) like this in JSON Schema: ``["integer", "string"]``.
@@ -127,13 +127,13 @@ Another thing everyone need to consider is default VARCHAR size. If there's no c
 You can also specify this default value:
 
 ```bash
-$ ./schema-guru-0.4.0 ddl --varchar-size 32 {{input}}
+$ ./schema-guru-0.5.0 ddl --varchar-size 32 {{input}}
 ```
 
 You can also specify Redshift Schema for your table. For non-raw mode ``atomic`` used as default.
 
 ```bash
-$ ./schema-guru-0.4.0 ddl --raw --schema business {{input}}
+$ ./schema-guru-0.5.0 ddl --raw --schema business {{input}}
 ```
 
 ### Web UI
@@ -249,7 +249,7 @@ Now just create a new Docker app in the **[Elastic Beanstalk Console] [beanstalk
 To produce it you need to specify vendor, name (if segmentation isn't using, see below), and version (optional, default value is 1-0-0).
 
 ```bash
-$ ./schema-guru-0.4.0 schema --vendor {{your_company}} --name {{schema_name}} --schemaver {{version}} {{input}}
+$ ./schema-guru-0.5.0 schema --vendor {{your_company}} --name {{schema_name}} --schemaver {{version}} {{input}}
 ```
 
 ### Schema Segmentation
@@ -282,7 +282,7 @@ and
 
 You can run it as follows:
 ```bash
-$ ./schema-guru-0.4.0 schema --output {{output_dir}} --schema-by $.event {{mixed_jsons_directory}}
+$ ./schema-guru-0.5.0 schema --output {{output_dir}} --schema-by $.event {{mixed_jsons_directory}}
 ```
 
 It will put two (or may be more) JSON Schemas into output dir: Purchased_an_Item.json and Posted_a_comment.json.
@@ -368,7 +368,7 @@ The generated schema:
 
 ## Copyright and License
 
-Schema Guru is copyright 2014-2015 Snowplow Analytics Ltd.
+Schema Guru is copyright 2014-2016 Snowplow Analytics Ltd.
 
 Licensed under the **[Apache License, Version 2.0] [license]** (the "License");
 you may not use this software except in compliance with the License.
@@ -385,7 +385,7 @@ limitations under the License.
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: http://www.apache.org/licenses/LICENSE-2.0
 
-[release-image]: http://img.shields.io/badge/release-0.4.0-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-0.5.0-blue.svg?style=flat
 [releases]: https://github.com/snowplow/schema-guru/releases
 
 [json-schema]: http://json-schema.org/
