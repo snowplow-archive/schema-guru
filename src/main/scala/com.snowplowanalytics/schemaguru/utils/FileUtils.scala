@@ -46,12 +46,12 @@ object FileUtils {
           // Output a success message
           s"File [${path}] was written successfully!".success
         }
-        case false => s"Could not make new directory to store files in - Check write permissions".fail
+        case false => s"Could not make new directory to store files in - Check write permissions".failure
       }
     } catch {
       case e: Exception => {
         val exception = e.toString
-        s"File [${path}] failed to write: [$exception]".fail
+        s"File [${path}] failed to write: [$exception]".failure
       }
     }
   }

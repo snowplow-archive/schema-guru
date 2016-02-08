@@ -55,7 +55,7 @@ class SchemaGenerator(implicit val context: SchemaContext) extends Serializable 
     json match {
       case JObject(x) => subJsonToSchema(json).success
       case JArray(x)  => subJsonToSchema(json).success
-      case _          => s"JSON instances must contain only objects or arrays. ${compact(json).slice(0, 32)} is unacceptable".fail
+      case _          => s"JSON instances must contain only objects or arrays. ${compact(json).slice(0, 32)} is unacceptable".failure
     }
 
   /**

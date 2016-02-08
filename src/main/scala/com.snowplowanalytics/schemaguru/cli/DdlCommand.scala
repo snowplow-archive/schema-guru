@@ -25,7 +25,7 @@ import org.clapper.argot._
 import ArgotConverters._
 
 // Schema DDL
-import com.snowplowanalytics.schemaddl.{ FlatSchema, SelfDescInfo }
+import com.snowplowanalytics.schemaddl.SchemaData.{ FlatSchema, SelfDescInfo }
 import com.snowplowanalytics.schemaddl.generators.{
   SchemaFlattener => SF
 }
