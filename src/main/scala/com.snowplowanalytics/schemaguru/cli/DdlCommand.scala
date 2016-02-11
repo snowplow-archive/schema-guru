@@ -25,7 +25,7 @@ import org.clapper.argot._
 import ArgotConverters._
 
 // Schema DDL
-import com.snowplowanalytics.schemaddl.{ FlatSchema, SelfDescInfo }
+import com.snowplowanalytics.schemaddl.SchemaData.{ FlatSchema, SelfDescInfo }
 import com.snowplowanalytics.schemaddl.generators.{
   SchemaFlattener => SF
 }
@@ -62,6 +62,7 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val schemaOption = parser.option[String](List("schema"), "name", "Redshift schema name")
   val sizeOption = parser.option[Int](List("varchar-size"), "n", "Default size for varchar data type")
   val splitProductFlag = parser.flag("split-product", false, "Split product types into different keys")
+  val noHeaderFlag = parser.flag("no-header", false, "Do not place header comments into output DDL")
 
   parser.parse(args)
 
@@ -74,6 +75,7 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
   val schemaName = if (!rawMode && schemaOption.value.isEmpty) { Some("atomic") } else { schemaOption.value }
   val size = sizeOption.value.getOrElse(4096)
   val splitProduct = splitProductFlag.value.getOrElse(false)
+  val noHeader = noHeaderFlag.value.getOrElse(false)
 
   val schemaList: ValidJsonFileList =
     if (input.isDirectory) {
@@ -159,9 +161,11 @@ class DdlCommand(val args: Array[String]) extends FileSystemJsonGetters {
           // TODO: refactor it
           val tableWithSnakedColumns = ddlFile.table.copy(columns = ddlFile.table.columns.map(c => c.copy(columnName = SU.snakify(c.columnName))))
 
+          val header = if (noHeader) "" else ddlFile.header ++ "\n\n"
+
           DdlOutput(
             jsonPathsLines,
-            ddlFile.header ++ "\n\n" ++
+            header ++
             ddlFile.schemaCreate ++ "\n\n" ++
             tableWithSnakedColumns.toDdl ++ "\n\n" ++
             ddlFile.comment.toDdl,
@@ -235,9 +239,10 @@ object DdlCommand extends GuruCommand {
    * @param flatSelfElems all information from Self-describing schema
    * @return relative filepath
    */
-  private def getFileName(flatSelfElems: SelfDescInfo): (String, String) = {
+  private[cli] def getFileName(flatSelfElems: SelfDescInfo): (String, String) = {
     // Make the file name
-    val file = flatSelfElems.name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase.concat("_1")
+    val version = "_".concat(flatSelfElems.version.replaceAll("-[0-9]+-[0-9]+", ""))
+    val file = flatSelfElems.name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase.concat(version)
 
     // Return the vendor and the file name together
     (flatSelfElems.vendor, file)

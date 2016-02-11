@@ -1,3 +1,11 @@
+Version 0.5.0 (2016-02-11)
+--------------------------
+Bumped schema-ddl to 0.3.0 (#130)
+Updated vagrant push to upload sparkjob to Bintray (#119)
+Removed "Generated" timestamp from sql files (#108)
+Fixed version in SQL table definition files (#114)
+Removed OpenJDK from .travis.yml (#131)
+
 Version 0.4.0 (2015-11-17)
 --------------------------
 Split core, cli and subprojects (#9)

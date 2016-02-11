@@ -97,7 +97,7 @@ trait FileSystemJsonGetters {
   def getJsonFileFromFile(file: File): Validation[String, JsonFile] =
     getJsonFromFile(file) match {
       case Success(json) => JsonFile(file.getName, json).success
-      case Failure(str) => str.fail
+      case Failure(str) => str.failure
     }
 
   /**
@@ -165,7 +165,7 @@ trait FileSystemJsonGetters {
 
     json match {
       case Success(j: JArray) => j.success
-      case _                  => file.getAbsolutePath.fail
+      case _                  => file.getAbsolutePath.failure
     }
   }
 }

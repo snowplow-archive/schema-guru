@@ -208,3 +208,8 @@ assemble_fatjar "schema-guru-webui"
 artifact_name="" && artifact_path="" && build_artifact "${version}" "schema-guru-webui" "./webui/target" "artifact_name" "artifact_path"
 upload_artifact_to_bintray "${artifact_name}" "${artifact_path}" "error"
 [ "${error}" ] && die "Error uploading package: ${error}"
+
+assemble_fatjar "schema-guru-sparkjob"
+artifact_name="" && artifact_path="" && build_artifact "${version}" "schema-guru-sparkjob" "./sparkjob/target" "artifact_name" "artifact_path"
+upload_artifact_to_bintray "${artifact_name}" "${artifact_path}" "error"
+[ "${error}" ] && die "Error uploading package: ${error}"
