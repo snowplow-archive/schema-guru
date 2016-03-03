@@ -18,24 +18,14 @@ import scalaz._
 import Scalaz._
 
 // jsonpath
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.gatling.jsonpath.JsonPath
 
 // json4s
-import org.json4s.jackson.JsonMethods.compact
+import org.json4s.jackson.JsonMethods.mapper
 
 object JsonPathExtractor {
 
-  val mapper = new ObjectMapper
-
-  /**
-   * Parse JSON string as raw JVM object to work with jackson
-   *
-   * @param json string containing JSON
-   * @return raw JVM object representing JSON
-   */
-  def parseJson(json: String): Object =
-    mapper.readValue(json, classOf[Object])
+  type SegmentedJsons = Map[Option[String], ValidJsonList]
 
   /**
    * Add default values for some exceptional cases and
@@ -45,7 +35,7 @@ object JsonPathExtractor {
    * @param content some optional content to convert
    * @return sliced string without special characters
    */
-  def convertToKey(content: Option[Any]): String = content match {
+  private def convertToKey(content: Option[Any]): String = content match {
     case Some(str) =>
       val key = try {
         str.toString
@@ -64,27 +54,27 @@ object JsonPathExtractor {
    *
    * @param jsonPath valid JSON Path
    * @param jsonList the validated JSON list
-   * @return Map from content to list of JValues
+   * @return Map with content found by JSON Path as key and list of JValues
+   *         key is Option where None means used to aggregate already non-valid JSONs
    */
-  def mapByPath(jsonPath: String, jsonList: List[ValidJson]): Map[String, List[ValidJson]] = {
-    val schemaToJsons = for {
+  def mapByPath(jsonPath: String, jsonList: List[ValidJson]): SegmentedJsons = {
+    val schemaToJsons: List[SegmentedJsons] = for {
       Success(json) <- jsonList
     } yield {
-        val jsonObject = parseJson(compact(json)) // TODO: Can we avoid transforming to String?
+        val jsonObject = mapper.convertValue(json, classOf[Object])
         JsonPath.query(jsonPath, jsonObject) match {
           case Right(iter) => {
-            val content = iter.toList.headOption
-            val key = convertToKey(content)
-            Map(key -> List(json.success))
+            val key = convertToKey(iter.toList.headOption).some
+            Map(key -> List(json.success[String]))
           }
-          case Left(_) => Map.empty[String, ValidJsonList]
+          case Left(_) => Map.empty[Option[String], ValidJsonList]
         }
       }
 
-    val failedJsons = for {
+    val failedJsons: List[SegmentedJsons] = for {
       Failure(err) <- jsonList
-    } yield Map("$SchemaGuruFailed" -> List(err.failure))
+    } yield Map(none[String] -> List(err.failure))
 
-    (failedJsons ++ schemaToJsons).reduce(_ |+| _)
+    (failedJsons ++ schemaToJsons).reduce { (a, b) => a |+| b }
   }
 }

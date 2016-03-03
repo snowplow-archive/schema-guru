@@ -20,7 +20,7 @@ from boto.emr.step import InstallHiveStep, ScriptRunnerStep
 from boto.emr.bootstrap_action import BootstrapAction
 
 DIR_WITH_JAR = "./target/scala-2.10/"
-JAR_FILE  = "schema-guru-sparkjob-0.4.0"
+JAR_FILE  = "schema-guru-sparkjob-0.6.0-M1"
 
 S3_REGIONS = { 'us-east-1': Location.DEFAULT,
                'us-west-1': Location.USWest,
