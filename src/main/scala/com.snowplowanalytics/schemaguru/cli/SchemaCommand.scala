@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -13,199 +13,167 @@
 package com.snowplowanalytics.schemaguru
 package cli
 
+// scalaz
 import scalaz._
 import Scalaz._
 
 // Java
 import java.io.File
+import java.io.PrintWriter
 
 // json4s
-import org.json4s._
-import org.json4s.jackson.JsonMethods._
-
-// Argot
-import org.clapper.argot._
-import org.clapper.argot.ArgotConverters._
+import org.json4s.{ JArray, JValue }
+import org.json4s.jackson.JsonMethods.pretty
 
 // This library
 import generators.PredefinedEnums.predefined
 import schema.Helpers.SchemaContext
-import utils._
+import utils.JsonPathExtractor
+import utils.FileSystemJsonGetters.{ getJsons, getJArrayFromFile }
 
 /**
- * Holds all information passed with CLI and decides how to produce
- * JSON Schema
- *
- * @param args array of arguments passed via CLI
+ * Class containing all inputs necessary data for `schema` derivation command
+ * and some generated preferences related to `schema` command
  */
-class SchemaCommand(val args: Array[String]) extends FileSystemJsonGetters {
-  import SchemaCommand._
+case class SchemaCommand private[schemaguru](
+  input: File,
+  output: Option[File] = None,
+  enumCardinality: Int = 0,
+  enumSets: Seq[String] = Nil,
+  vendor: Option[String] = None,
+  name: Option[String] = None,
+  schemaver: Option[String] = None,
+  schemaBy: Option[String] = None,
+  noLength: Boolean = false,
+  ndjson: Boolean = false) extends SchemaGuruCommand {
 
-  // Required
-  val inputArgument = parser.parameter[File]("input", "Path to schema or directory with schemas", false)
-
-  // primary subcommand's options and arguments
-  val outputOption = parser.option[String]("output", "path", "Output file (print to stdout otherwise)")
-  val cardinalityOption = parser.option[Int](List("enum"), "n", "Cardinality to evaluate enum property")
-  val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
-  val schemaByOption = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
-  val enumSets = parser.multiOption[String](List("enum-sets"), "set", s"Predefined enum sets (${predefined.keys.mkString(",")})")
-  val noLengthsFlag = parser.flag[Boolean](List("no-length"), "Don't derive minLength and maxLength")
-
-  // self-describing schema arguments
-  val vendorOption = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
-  val nameOption = parser.option[String](List("name"), "name", "Schema name for self-describing schema")
-  val versionOption = parser.option[String](List("schemaver"), "version", "Schema version (in SchemaVer format) for self-describing schema")
-
-  parser.parse(args)
-
-  val input = inputArgument.value.get // isn't optional
-
-  val deriveLengths = !noLengthsFlag.value.getOrElse(false)
-
-  // Get arguments for JSON Path segmentation and validate them
-  val segmentSchema = (schemaByOption.value, outputOption.value) match {
-    case (Some(jsonPath), Some(dirPath)) => Some((jsonPath, dirPath))
-    case (Some(jsonPath), None)          => Some((jsonPath, "."))
-    case _                               => None
-  }
-
-  // Get arguments for self-describing schema and validate them
-  val selfDescribing = (vendorOption.value, nameOption.value, versionOption.value) match {
-    case (Some(vendor), name, version) => {
-      name match {
-        case None if (!segmentSchema.isDefined)   => parser.usage("You need to specify --name OR segment schema.")
-        case Some(_) if (segmentSchema.isDefined) => parser.usage("You need to specify --name OR segment schema.")
-        case _ => ()    // we can omit name, but it must be
-      }
-      if (!vendor.matches("([A-Za-z0-9\\-\\_\\.]+)")) {
-        parser.usage("--vendor argument must consist of only letters, numbers, hyphens, underscores and dots")
-      } else if (name.isDefined && !name.get.matches("([A-Za-z0-9\\-\\_]+)")) {
-        parser.usage("--name argument must consist of only letters, numbers, hyphens and underscores")
-      } else if (version.isDefined && !version.get.matches("\\d+\\-\\d+\\-\\d+")) {
-        parser.usage("--schemaver argument must be in SchemaVer format (example: 1-1-0)")
-      }
-      Some(SelfDescribingSchema(vendor, name, version))
-    }
-    case (None, None, None) => None
-    case _  => parser.usage("--vendor, --name and --schemaver arguments need to be used in conjunction.")
-  }
-
-  // Decide where and which files should be parsed
-  val jsonList: ValidJsonList =
-    if (input.isDirectory) ndjsonFlag.value match {
-      case Some(true) => getJsonsFromFolderWithNDFiles(input)
-      case _          => getJsonsFromFolder(input)
-    }
-    else ndjsonFlag.value match {
-      case Some(true) => getJsonFromNDFile(input)
-      case _          => List(getJsonFromFile(input))
-    }
-
-  val enumCardinality = cardinalityOption.value.getOrElse(0)
-  val baseSchemaContext = SchemaContext(  // will be modified with quantity
-    enumCardinality,
-    getEnumSets.flatMap {   // filter only correct enum sets
-      case Success(l) => List(l)
-      case Failure(_) => Nil
-    },
-    deriveLength = deriveLengths
-  )
-
-  jsonList match {
-    case Nil => parser.usage("Directory does not contain any JSON files.")
-    case someJsons => {
-      segmentSchema match {
-        case None => {
-          val context = baseSchemaContext.copy(quantity = Some(someJsons.filter(_.isSuccess).length))
-          val convertResult = SchemaGuru.convertsJsonsToSchema(someJsons, context)
-          val result = SchemaGuru.mergeAndTransform(convertResult, context)
-          outputResult(result, outputOption.value, selfDescribing)
-        }
-        case Some((path, dir)) => {
-          val nameToJsonsMapping = JsonPathExtractor.mapByPath(path, jsonList)
-          nameToJsonsMapping map {
-            case (key, jsons) => {
-              val context = baseSchemaContext.copy(quantity = Some(jsons.filter(_.isSuccess).length))
-              val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, context)
-              val result = SchemaGuru.mergeAndTransform(convertResult, context)
-              val describingInfo = selfDescribing.map(_.copy(name = Some(key)))
-              val fileName = key + ".json"
-              val file =
-                if (key == "$SchemaGuruFailed") None
-                else Some(new File(dir, fileName).getAbsolutePath)
-              outputResult(result, file, describingInfo)
-            }
-          }
-        }
-      }
-    }
-
-      /**
-       * Print Schema, warnings and errors
-       *
-       * @param result Schema Guru result containing all information
-       * @param outputFile optional path to file for schema output
-       * @param selfDescribingInfo optional info to make shema self-describing
-       */
-      def outputResult(result: SchemaGuruResult, outputFile: Option[String], selfDescribingInfo: Option[SelfDescribingSchema]): Unit = {
-        // Make schema self-describing if necessary
-        val schema = Schema(result.schema, selfDescribingInfo)
-
-        val errors = result.errors ++ getEnumSets.flatMap {
-          case Failure(f) => List(s"Predefined enum [$f] not found")
-          case Success(_) => Nil
-        }
-
-        // Print JsonSchema to file or stdout
-        outputFile match {
-          case Some(file) => {
-            val output = new java.io.PrintWriter(file)
-            output.write(pretty(render(schema.toJson)))
-            output.close()
-          }
-          case None => println(pretty(render(schema.toJson)))
-        }
-
-        // Print errors
-        if (!errors.isEmpty) {
-          println("\nErrors:\n" + errors.mkString("\n"))
-        }
-
-        // Print warnings
-        result.warning match {
-          case Some(warning) => println(warning.consoleMessage)
-          case _ =>
-        }
-      }
+  /**
+   * Preference representing Schema-segmentation
+   * First element of pair is JSON Path, by which we split our Schemas
+   * Second element is output path where to put Schemas (can't print it to stdout)
+   * None means we don't need to do segmentation
+   */
+  val segmentSchema = schemaBy.map { jsonPath =>
+    (jsonPath, output.getOrElse(new File(".")))
   }
 
   /**
-   * Get validated list of enums predefined in
-   * `generators.PredefinedEnums.predefined` and in filesystem
-   *
-   * @return validated list predefined enums
+   * List (probably empty) of JSON Arrays with requested enum sets
    */
-  def getEnumSets: List[Validation[String, JArray]] = {
-    val fileArrays: List[Validation[String, JArray]] =
-      enumSets.value.toList.filterNot(_ == "all").map(arg => getJArrayFromFile(new File(arg)))
+  lazy val successfulEnumSets = validatedEnumSets.toList.flatten
 
-    if (enumSets.value.contains("all")) { predefined.values.map(_.success).toList ++ fileArrays }
-    else fileArrays.map {
-      case Success(arr) => arr.success
-      case Failure(key) if predefined.isDefinedAt(key) => predefined(key).success
-      case Failure(arg) => arg.failure
+  /**
+   * Validated list of enums predefined as JSON arrays in
+   * `generators.PredefinedEnums.predefined` and in filesystem
+   * Custom enums (from filesystem) have priority over predefined
+   */
+  lazy val validatedEnumSets: ValidationNel[String, List[JArray]] = {
+    val (predefinedSetsKeys, customSetsKeys) = enumSets.toList
+      .partition(s => s == "all" || predefined.isDefinedAt(s))
+
+    val predefinedSets =
+      if (predefinedSetsKeys.contains("all")) predefined.values.toList
+      else predefinedSetsKeys.collect(predefined)
+
+    val customSets = customSetsKeys
+      .map(getJArrayFromFile(_).leftMap(set => s"Enum set [$set] does not exist").toValidationNel)
+      .sequenceU
+
+    customSets.map { _ ++ predefinedSets }
+  }
+
+  /**
+   * Primary working method of `schema` command
+   * Get all JSONs from specified path, parse them,
+   * produce single Schema or bunch of segmented Schemas
+   * and output them to specified path, also output errors
+   */
+  def processSchema(): Unit = {
+    val (failures, jsons) = getJsons(input, ndjson)
+
+    jsons match {
+      case Nil => sys.error(s"Directory [${input.getAbsolutePath}] does not contain any JSON files")
+      case someJsons => segmentSchema match {
+        case Some((path, dir)) => processSegmented(someJsons, path, dir, failures)
+        case None =>
+          val result = produce(name, someJsons).appendErrors(failures)
+          output(result, output)
+      }
     }
   }
-}
 
-/**
- * Companion object holding all static information about command
- */
-object SchemaCommand extends GuruCommand {
-  val title = "schema"
-  val description = "Derive JSON Schema from set of JSON instances"
-  val parser = new ArgotParser(programName = generated.ProjectSettings.name + " " + title, compactUsage = true)
+  /**
+   * Primary method for Schema-segmentation process
+   * Segment Schemas by JSON Path and output each Schema to
+   * specified output (`dir` (required) + name found in JSON Path)
+   * along with Schema-specific errors and all other errors (parsing)
+   *
+   * @param jsons list of successfully parsed JSON instances
+   * @param jsonPath JSON Path presented in `jsons` by instances should be distincted
+   *                 and where name of Schema is storing
+   * @param dir path to output all segmented Schemas
+   * @param parseErrors errors (non-fatal) risen on previous steps
+   */
+  private def processSegmented(jsons: List[JValue], jsonPath: String, dir: File, parseErrors: List[String]): Unit = {
+    val (failures, segmentedJsons) = JsonPathExtractor.segmentByPath(jsonPath, jsons)
+    segmentedJsons.foreach { case (key, someJsons) =>
+      val result = produce(key.some, someJsons).appendErrors(failures)
+      val file = new File(dir, key + ".json").some
+      output(result, file)
+    }
 
-  def apply(args: Array[String]) = new SchemaCommand(args)
+    // Print errors
+    if (parseErrors.nonEmpty) {
+      println("\nErrors:\n" + parseErrors.mkString("\n"))
+    }
+  }
+
+  /**
+   * Run process of Schema derivation, mapping each of `jsons` to its microschema,
+   * reducing (extending, actually) these microschema to a single Schema
+   * validating all these instances, transform this Schema's fields to meaningful
+   * values. In the end, optionally describe Schema with name, vendor
+   * if user specified ones
+   *
+   * @param name optional name to describe Schema (non-optional for segmentation)
+   * @param jsons list of instances to generate Schema from
+   * @return generation result, containing Schema, all warnings and errors happened
+   *         during process of derivation
+   */
+  private def produce(name: Option[String], jsons: List[JValue]): SchemaGuruResult = {
+    val context = SchemaContext(enumCardinality, successfulEnumSets, Some(jsons.length), !noLength)
+    val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, context)
+    SchemaGuru.mergeAndTransform(convertResult, context)
+      .describe(vendor, name, schemaver)
+  }
+
+  /**
+   * Print Schema, warnings and errors
+   *
+   * @param result Schema Guru result containing all information
+   * @param outputFile optional file for schema output, print to stdout if None
+   */
+  private def output(result: SchemaGuruResult, outputFile: Option[File]): Unit = {
+    val json = pretty(result.schema.toJson)
+
+    // Print JsonSchema to file or stdout
+    outputFile match {
+      case Some(file) =>
+        val output = new PrintWriter(file)
+        output.write(json)
+        output.close()
+      case None => println(json)
+    }
+
+    // Print errors
+    if (result.errors.nonEmpty) {
+      println("\nErrors:\n" + result.errors.mkString("\n"))
+    }
+
+    // Print warnings
+    result.warning match {
+      case Some(warning) => println(warning.consoleMessage)
+      case _ =>
+    }
+  }
 }

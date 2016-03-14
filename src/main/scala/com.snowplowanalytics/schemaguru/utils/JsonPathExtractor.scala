@@ -17,6 +17,9 @@ package utils
 import scalaz._
 import Scalaz._
 
+// json4s
+import org.json4s.JValue
+
 // jsonpath
 import io.gatling.jsonpath.JsonPath
 
@@ -24,8 +27,6 @@ import io.gatling.jsonpath.JsonPath
 import org.json4s.jackson.JsonMethods.mapper
 
 object JsonPathExtractor {
-
-  type SegmentedJsons = Map[Option[String], ValidJsonList]
 
   /**
    * Add default values for some exceptional cases and
@@ -35,46 +36,45 @@ object JsonPathExtractor {
    * @param content some optional content to convert
    * @return sliced string without special characters
    */
-  private def convertToKey(content: Option[Any]): String = content match {
-    case Some(str) =>
-      val key = try {
-        str.toString
-      } catch {
-        case _: NullPointerException => "unmatched"
-      }
-      if (key.trim.length == 0) "unmatched"
-      else key.slice(0, 30).replaceAll("[^a-zA-Z0-9.-]", "_")
-    case None => "unmatched"
-  }
-  
+  private def normalizeLookupResult(content: Option[Any]): Option[String] =
+    for {
+      k <- content          // unbox
+      key <- Option(k)      // check for null
+      a = key.toString      // stringify
+      if a.trim.length > 0  // check for empty
+    } yield a.slice(0, 30).replaceAll("[^a-zA-Z0-9.-]", "_")
+
 
   /**
    * Maps content of specified JSON Path to List of JSONs which contains same
    * content
    *
    * @param jsonPath valid JSON Path
-   * @param jsonList the validated JSON list
+   * @param jsons valid non-empty list of JSONs
    * @return Map with content found by JSON Path as key and list of JValues
    *         key is Option where None means used to aggregate already non-valid JSONs
    */
-  def mapByPath(jsonPath: String, jsonList: List[ValidJson]): SegmentedJsons = {
-    val schemaToJsons: List[SegmentedJsons] = for {
-      Success(json) <- jsonList
+  def segmentByPath(jsonPath: String, jsons: List[JValue]): SegmentedJsons = {
+    val schemaToJsons = for {
+      json <- jsons
     } yield {
-        val jsonObject = mapper.convertValue(json, classOf[Object])
-        JsonPath.query(jsonPath, jsonObject) match {
-          case Right(iter) => {
-            val key = convertToKey(iter.toList.headOption).some
-            Map(key -> List(json.success[String]))
-          }
-          case Left(_) => Map.empty[Option[String], ValidJsonList]
-        }
+      val jsonObject = mapper.convertValue(json, classOf[Object])
+      JsonPath.query(jsonPath, jsonObject) match {
+        case Right(iter) =>
+          val lookupResult = normalizeLookupResult(iter.toList.headOption)
+          lookupResult -> json.success[String]
+        case Left(e) => none[String] -> e.reason.failure[JValue]
       }
+    }
 
-    val failedJsons: List[SegmentedJsons] = for {
-      Failure(err) <- jsonList
-    } yield Map(none[String] -> List(err.failure))
-
-    (failedJsons ++ schemaToJsons).reduce { (a, b) => a |+| b }
+    // Split successful and failed lookups
+    schemaToJsons.foldLeft((List.empty[String], Map.empty[String, List[JValue]])) { (acc, cur) =>
+      cur match {
+        case (Some(key), Success(json)) => (acc._1, acc._2 |+| Map(key -> List(json)))
+        case (None, Failure(fail))      => (s"$fail" :: acc._1, acc._2)
+        case _                          => ("Not-string value found" :: acc._1, acc._2)
+      }
+    }
   }
 }
+

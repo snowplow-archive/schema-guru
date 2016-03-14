@@ -40,12 +40,12 @@ object SchemaGuruBuild extends Build {
         Libraries.jsonValidator,
         Libraries.commonsValidator,
         // Scala
-        Libraries.argot,
         Libraries.scalaz7,
         Libraries.json4sJackson,
         Libraries.json4sScalaz,
         Libraries.jsonpath,
         Libraries.schemaddl,
+        Libraries.scopt,
         // Scala (test only)
         Libraries.specs2,
         Libraries.scalazSpecs2,

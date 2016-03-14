@@ -17,90 +17,105 @@ package sparkjob
 import scalaz._
 import Scalaz._
 
-// Argot
-import org.clapper.argot._
-import org.clapper.argot.ArgotConverters._
+// Scopt
+import scopt._
 
 // This library
-import generators.PredefinedEnums.predefined
+import Common.SchemaVer
 
 object OptionsParserCLI {
-  def parse(args: List[String]): Validation[String, SchemaGuruOptions] =
-    try {
-      parseArgs(args).success
+  def parse(args: List[String]): Validation[String, SparkJobCommand] = {
+    val parser = getParser
+    val parsedCommand = try {
+      parser.parse(args, SparkJobCommand("", "")).success
     } catch {
-      case e: ArgotUsageException => e.getMessage.fail
-      case e: Exception => e.getMessage.fail
+      case e: Exception => e.getMessage.failure
     }
-
-  private def parseArgs(args: List[String]): SchemaGuruOptions = {
-    val parser = new ArgotParser(programName = generated.ProjectSettings.name, compactUsage = true)
-
-    val inputArgument = parser.parameter[String]("input", "Path to schema or directory with schemas", false)
-
-    val outputOption = parser.option[String]("output", "path", "Output file (print to stdout otherwise)")
-    val cardinalityOption: SingleValueOption[Int] = parser.option[Int](List("enum"), "n", "Cardinality to evaluate enum property")
-    val ndjsonFlag = parser.flag[Boolean](List("ndjson"), "Expect ndjson format")
-    val schemaByOption = parser.option[String](List("schema-by"), "JSON Path", "Path of Schema title")
-    val enumSetsOption = parser.multiOption[String](List("enum-sets"), "set", s"Predefined enum sets (${predefined.keys.mkString(",")})")
-    val noLengthsFlag = parser.flag[Boolean](List("no-length"), "Don't derive minLength and maxLength")
-
-    // self-describing schema arguments
-    val vendorOption = parser.option[String](List("vendor"), "name", "Vendor name for self-describing schema")
-    val nameOption = parser.option[String](List("name"), "name", "Schema name for self-describing schema")
-    val versionOption = parser.option[String](List("schemaver"), "version", "Schema version (in SchemaVer format) for self-describing schema")
-
-     // spark-only
-    val errorsPathOption = parser.option[String](List("errors-path"), "path", "Path to dump errors")
-
-    parser.parse(args)
-
-    val input = inputArgument.value.get // isn't optional
-    val noLengths = noLengthsFlag.value.getOrElse(false)
-    outputOption.value match {
-      case None    => parser.usage("--output is required for Spark Job")
-      case Some(_) =>
+    
+    parsedCommand.flatMap {
+      case Some(parsed) => parsed.success
+      case None => parser.usage.failure
     }
+  }
 
-    // Get arguments for JSON Path segmentation and validate them
-    val segmentSchema: Option[(String, String)] = (schemaByOption.value, outputOption.value) match {
-      case (Some(jsonPath), Some(dirPath)) => Some((jsonPath, dirPath))
-      case (Some(jsonPath), None)          => Some((jsonPath, "."))
-      case _                               => None
-    }
+  def getParser: OptionParser[SparkJobCommand] = {
+    new OptionParser[SparkJobCommand]("SchemaGuruSparkJob") {
+      head(generated.ProjectSettings.name, generated.ProjectSettings.version)
+      help("help") text "Print this help message"
+      version("version") text "Print version info\n"
 
-    // Get arguments for self-describing schema and validate them
-    val selfDescribing = (vendorOption.value, nameOption.value, versionOption.value) match {
-      case (Some(vendor), name, version) => {
-        name match {
-          case None if (!segmentSchema.isDefined)   => parser.usage("You need to specify --name OR segment schema.")
-          case Some(_) if (segmentSchema.isDefined) => parser.usage("You need to specify --name OR segment schema.")
-          case _ => ()    // we can omit name, but it must be
-        }
-        if (!vendor.matches("([A-Za-z0-9\\-\\_\\.]+)")) {
-          parser.usage("--vendor argument must consist of only letters, numbers, hyphens, underscores and dots")
-        } else if (name.isDefined && !name.get.matches("([A-Za-z0-9\\-\\_]+)")) {
-          parser.usage("--name argument must consist of only letters, numbers, hyphens and underscores")
-        } else if (version.isDefined && !version.get.matches("\\d+\\-\\d+\\-\\d+")) {
-          parser.usage("--schemaver argument must be in SchemaVer format (example: 1-1-0)")
-        }
-        Some(SelfDescribingSchema(vendor, name, version))
+      arg[String]("input") action { (x, c) =>
+        c.copy(input=x) } required() text "Path to single JSON instance or directory"
+
+      opt[String]("output")
+        .action { (x, c) => c.copy(output=x) }
+        .required()
+        .valueName("<path>")
+        .text("Path to output result. File for single Schema, directory (required) for segmentation")
+
+      opt[Int]("enum")
+        .action { (x, c) => c.copy(enumCardinality=x) }
+        .valueName("<n>")
+        .text("Cardinality to evaluate enum property")
+        .validate { o => if (o > 0) success else failure("Option --enum cannot be less than zero") }
+
+      opt[Unit]("enum-sets")
+        .action { (_, c) => c.copy(enumSets=true) }
+        .text("Derive predefined enum sets")
+
+      opt[Unit]("no-length")
+        .action { (_, c) => c.copy(noLength=true) }
+        .text("Do not try to derive minLength and maxLength for strings\n\tRecommended for small sets")
+
+      opt[Unit]("ndjson")
+        .action { (_, c) => c.copy(ndjson=true) }
+        .text("Expect newline-delimited JSON")
+
+      opt[String]("vendor")
+        .action { (x, c) => c.copy(vendor = Some(x)) }
+        .valueName("<title>")
+        .text("Vendor title for Self-describing data")
+        .validate { o =>
+          if (o.matches("([A-Za-z0-9\\-\\_\\.]+)")) success
+          else failure("Option --vendor can contain only alphanumeric characters, underscores, hyphens and dots") }
+
+      opt[String]("name")
+        .action { (x, c) => c.copy(name=Some(x)) }
+        .valueName("<name>")
+        .text("Schema name for Self-describing data\n\tCan be omitted with --schema-by")
+        .validate { o =>
+          if (o.matches("([A-Za-z0-9\\-\\_]+)")) success
+          else failure("Option --name can contain only alphanumeric characters, underscores and hyphens") }
+
+      opt[String]("schemaver")
+        .action { (x, c) => c.copy(schemaver = SchemaVer.parse(x)) }
+        .valueName("<m-r-v>")
+        .text("Schema version for Self-describing data in Schemaver format\n\tDefault: 1-0-0")
+        .validate { o =>
+          if (SchemaVer.parse(o).isDefined) success
+          else failure("Option --schemaver must match Schemaver format (example: 1-2-1)") }
+
+      opt[String]("schema-by")
+        .action { (x, c) => c.copy(schemaBy=Some(x)) }
+        .valueName("<JSON Path>")
+        .text("Segment set of instances by JSON Path\n\tValue under JSON Path will be taken as name Self-describing data\n")
+
+      opt[String]("errors-path")
+        .action { (x, c) => c.copy(errorsPath = Some(x)) }
+        .valueName("path")
+        .text("Path to dump errors")
+
+      checkConfig { command =>
+        if (command.vendor.isDefined && (command.name.isEmpty && command.schemaBy.isEmpty))
+          failure("Option --vendor must be used only in conjunction with --name or --schema-by")
+        else if (command.name.isDefined && command.vendor.isEmpty)
+          failure("Option --name can be used only in conjunction with --vendor")
+        else if (command.schemaBy.isDefined && command.vendor.isEmpty)
+          failure("Option --schema-by must be used only in conjunction with --vendor")
+        else if (command.schemaver.isDefined && command.vendor.isEmpty && (command.schemaBy.isEmpty || command.name.isEmpty))
+          failure("Option --schemaver must be used only in conjunction with --vendor and (--schema-by or --name)")
+        else success
       }
-      case (None, None, None) => None
-      case _  => parser.usage("--vendor, --name and --schemaver arguments need to be used in conjunction.")
     }
-
-    SchemaGuruOptions(
-      input,
-      outputOption.value,
-      cardinalityOption.value.getOrElse(0),
-      ndjsonFlag.value.getOrElse(false),
-      schemaByOption.value,
-      enumSetsOption.value.toList,
-      segmentSchema,
-      selfDescribing,
-      errorsPathOption.value,
-      noLengths
-    )
   }
 }

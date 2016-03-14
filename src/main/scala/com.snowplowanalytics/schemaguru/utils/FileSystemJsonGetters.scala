@@ -20,6 +20,7 @@ import Scalaz._
 // Scala
 import scala.io.{ BufferedSource, Source }
 
+// Java
 import java.io.File
 
 // Jackson
@@ -33,7 +34,50 @@ import org.json4s.jackson.JsonMethods._
  * Functions responsible for getting JValues (possible invalid) from files,
  * directories, etc
  */
-trait FileSystemJsonGetters {
+object FileSystemJsonGetters {
+
+  /**
+   * Inspect what `input` parameter is (file or dir) and load
+   * (recursively in case of dir) JSONs as specified format
+   * (NDJSON or plain) into list of validations
+   *
+   * @param input file object referring to file or dir
+   * @param ndjson whether files should containing newline-delimilted JSON
+   * @return pair with list of error and list of successful parsed JSONs
+   */
+  def getJsons(input: File, ndjson: Boolean): (List[String], List[JValue]) = {
+    val allJsons = jsonList(input, ndjson)
+    allJsons.foldLeft((List.empty[String], List.empty[JValue]))(splitValidated)
+  }
+
+  def splitValidated[F, S](acc: (List[F], List[S]), current: Validation[F, S]): (List[F], List[S]) =
+    current match {
+      case Success(json) => (acc._1, json :: acc._2)
+      case Failure(fail) => (fail :: acc._1, acc._2)
+    }
+
+  /**
+   * Inspect what `input` parameter is (file or dir) and load
+   * (recursively in case of dir) JSONs as specified format
+   * (NDJSON or plain) into list of validations
+   * Note: when trying to load ndjson-file with `ndjson` set to false
+   * it will parse only first instance
+   * Note: all non-JSON files will be parsed as Failure
+   *
+   * @param input file object referring to file or dir
+   * @param ndjson whether files should containing newline-delimilted JSON
+   * @return list of validated JSON instances
+   */
+  def jsonList(input: File, ndjson: Boolean): ValidJsonList =
+    if (input.isDirectory && ndjson)
+      getJsonsFromFolderWithNDFiles(input)
+    else if (input.isDirectory && !ndjson)
+      getJsonsFromFolder(input)
+    else if (ndjson && !input.isDirectory)
+      getJsonFromNDFile(input)
+    else   // single ndjson file
+      getJsonFromFile(input) :: Nil
+
   /**
    * Recursively get all files in ``dir`` except hidden
    *
@@ -54,23 +98,8 @@ trait FileSystemJsonGetters {
    * @param dir The directory we are going to get JSONs from
    * @return a List with validated JSONs nested inside
    */
-  def getJsonsFromFolder(dir: File): ValidJsonList = {
-    val proccessed = for {
-      file <- listAllFiles(dir)
-    } yield {
-        getJsonFromFile(file)
-      }
-    proccessed.toList
-  }
-
-  def getJsonFilesFromFolder(dir: File): ValidJsonFileList = {
-    val proccessed = for {
-      file <- listAllFiles(dir)
-    } yield {
-        getJsonFileFromFile(file)
-      }
-    proccessed.toList
-  }
+  def getJsonsFromFolder(dir: File): ValidJsonList =
+    for { file <- listAllFiles(dir) } yield getJsonFromFile(file)
 
   /**
    * Returns a validated JSON from the specified path
@@ -94,7 +123,13 @@ trait FileSystemJsonGetters {
     }
   }
 
-  def getJsonFileFromFile(file: File): Validation[String, JsonFile] =
+  def getJsonFiles(file: File): ValidJsonFileList = {
+    if (!file.exists()) Failure(s"Path [${file.getAbsolutePath}] doesn't exist") :: Nil
+    else if (file.isDirectory) for { f <- listAllFiles(file) } yield getJsonFile(f)
+    else getJsonFile(file) :: Nil
+  }
+
+  def getJsonFile(file: File): Validation[String, JsonFile] =
     getJsonFromFile(file) match {
       case Success(json) => JsonFile(file.getName, json).success
       case Failure(str) => str.failure
@@ -168,5 +203,8 @@ trait FileSystemJsonGetters {
       case _                  => file.getAbsolutePath.failure
     }
   }
+  
+  def getJArrayFromFile(path: String): Validation[String, JArray] =
+    getJArrayFromFile(new File(path))
 }
 

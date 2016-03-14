@@ -25,6 +25,7 @@ import org.json4s.jackson.JsonMethods._
 
 // This library
 import schema.Helpers.SchemaContext
+import utils.FileSystemJsonGetters.splitValidated
 
 trait SchemaGuruRoutes extends HttpService with HttpJsonGetters with HttpOptionsGetter {
   /**
@@ -38,11 +39,12 @@ trait SchemaGuruRoutes extends HttpService with HttpJsonGetters with HttpOptions
           respondWithHeader(HttpHeaders.`Access-Control-Allow-Origin`(AllOrigins)) {
             detach() {
               complete {
-                val jsons: ValidJsonList = getJsonFromRequest(formData)
+                val (parseErrors, jsons) = getJsonFromRequest(formData)
+                  .foldLeft((List.empty[String], List.empty[JValue]))(splitValidated)
                 val context = SchemaContext(getCardinality(formData), quantity = Some(formData.fields.length))
                 val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, context)
                 val mergeResult = SchemaGuru.mergeAndTransform(convertResult, context)
-                val errors = getErrorsAsJson(mergeResult.errors)
+                val errors = getErrorsAsJson(mergeResult.errors ++ parseErrors)
                 compact(
                   (("status", "processed"): JObject) ~
                   ("schema", mergeResult.schema.toJson) ~

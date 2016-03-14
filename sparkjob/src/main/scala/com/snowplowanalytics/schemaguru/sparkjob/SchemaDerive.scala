@@ -27,9 +27,9 @@ import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.HashPartitioner
 import org.apache.spark.rdd.RDD
 
-
 // This library
 import schema.Helpers.SchemaContext
+import utils.FileSystemJsonGetters.splitValidated
 
 object SchemaDerive {
   private val AppName = "SchemaDeriveJob"
@@ -53,7 +53,7 @@ object SchemaDerive {
 
         // Output schemas
         val schemas = result.filter(_.schemaPath.isDefined).map(r => (r.schemaPath.get, pretty(r.schema.toJson)))
-        output(options.output.get, schemas)
+        output(options.output, schemas)
 
         // Output errors
         options.errorsPath match {
@@ -79,19 +79,14 @@ object SchemaDerive {
    * @return RDD with single schema/errors output if schema segmentation
    *         required, with multiple otherwise
    */
-  def process(sc: SparkContext, options: SchemaGuruOptions): RDD[OutputResult] = {
-    val enumSets: List[JArray] = options.getEnumSets.flatMap({ case Success(l) => List(l); case Failure(_) => Nil }).toList
-    val schemaContext: SchemaContext = SchemaContext(options.enumCardinality, enumSets, deriveLength = !options.noLength)
+  def process(sc: SparkContext, options: SparkJobCommand): RDD[OutputResult] = {
+    val enumSets = options.successfulEnumSets
+    val schemaContext = SchemaContext(options.enumCardinality, enumSets, deriveLength = !options.noLength)
 
     // Decide where and which files should be parsed
     val jsonList: RDD[ValidJson] = options.ndjson match {
       case true => getJsonsFromFolderWithNDFiles(sc, options.input)
       case false => getJsonsFromFolder(sc, options.input)
-    }
-
-    val failedEnumSets: Seq[String] = options.getEnumSets.flatMap {
-      case Failure(f) => List(s"Predefined enum [$f] not found")
-      case Success(_) => Nil
     }
 
     // Produce one-element RDD for usual processing and multiple-elements for processing with segments
@@ -100,22 +95,23 @@ object SchemaDerive {
         val convertResult = SchemaGuruRDD.convertsJsonsToSchema(jsonList, schemaContext)
         val mergeResult = SchemaGuruRDD.mergeAndTransform(convertResult, schemaContext)
         val schema = Schema(mergeResult.schema, options.selfDescribing)
-        val errors = mergeResult.errors.collect.toList ++ failedEnumSets ++ mergeResult.warnings.map(_.consoleMessage)
+        val errors = mergeResult.errors.collect.toList  ++ mergeResult.warnings.map(_.consoleMessage)
         sc.parallelize(List(OutputResult(schema, Some("result.json"), errors, options.errorsPath)))
       }
       case Some((path, _)) => {
         val nameToJsonsMapping: RDD[(String, Iterable[ValidJson])] = JsonPathExtractorRDD.mapByPathRDD(path, jsonList)
         nameToJsonsMapping map {
-          case (key, jsons) => {  // jsons are Lists nested in RDD
-            val convertResult = SchemaGuru.convertsJsonsToSchema(jsons.toList, schemaContext)
+          case (key, jsonValidations) => {  // jsons are Lists nested in RDD
+            val (mappingErrors, jsons) = jsonValidations.foldLeft((List.empty[String], List.empty[JValue]))(splitValidated)
+            val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, schemaContext)
             val mergeResult = SchemaGuru.mergeAndTransform(convertResult, schemaContext)
-            val describingInfo = options.selfDescribing.map(_.copy(name = Some(key)))
+            val describingInfo = options.selfDescribing.map(_.copy(name = key))
             val fileName = key + ".json"
             val file =
               if (key == "$SchemaGuruFailed") None
               else Some(fileName)
-            val schema = Schema(mergeResult.schema, describingInfo)
-            val errors = mergeResult.errors ++ failedEnumSets ++ mergeResult.warning.map(_.consoleMessage)
+            val schema = Schema(mergeResult.schema.schema, describingInfo)
+            val errors = mergeResult.errors ++ mergeResult.warning.map(_.consoleMessage) ++ mappingErrors
             OutputResult(schema, file, errors, options.errorsPath)
           }
         }

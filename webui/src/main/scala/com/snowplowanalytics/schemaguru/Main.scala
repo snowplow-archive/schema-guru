@@ -19,8 +19,24 @@ import akka.io.IO
 import spray.can.Http
 
 // Argot
-import org.clapper.argot._
-import org.clapper.argot.ArgotConverters._
+import scopt._
+
+object WebuiCli {
+  case class Config(
+    port: Int = 8000,
+    interface: String = "0.0.0.0"
+  )
+
+  val parser = new OptionParser[Config]("schema-guru") {
+    head(generated.ProjectSettings.name, generated.ProjectSettings.version)
+    note("some notes.\n")
+    help("help") text("prints this usage text")
+    opt[Int]("port") action { (x, c) =>
+      c.copy(port = x) } text("TCP port to run Web UI (default: 8000)")
+    opt[String]("interface") action { (x, c) =>
+      c.copy(interface = x) } text("Interface to bind Web UI (default: 0.0.0.0)")
+  }
+}
 
 class SchemaGuruRoutesActor extends SchemaGuruRoutes with Actor {
   def actorRefFactory = context
@@ -28,30 +44,21 @@ class SchemaGuruRoutesActor extends SchemaGuruRoutes with Actor {
 }
 
 object Main extends App {
-  val parser = new ArgotParser(
-    programName = "generated.ProjectSettings.name",
-    compactUsage = true,
-    preUsage = Some("%s: Version %s. Copyright (c) 2015, %s.".format(
-      generated.ProjectSettings.name,
-      generated.ProjectSettings.version,
-      generated.ProjectSettings.organization)
-    )
-  )
+  val config = WebuiCli.parser.parse(args, WebuiCli.Config())
 
-  val portArgument = parser.option[Int](List("port"), "n", "TCP port to run Web UI (default: 8000)")
-  val interfaceArgument = parser.option[String](List("interface"), "interface", "Interface to bind Web UI (default: 0.0.0.0)")
+  config match {
+    case Some(options) => run(options)
+    case None => WebuiCli.parser.showUsageAsError()
+  }
 
-  parser.parse(args)
+  def run(options: WebuiCli.Config): Unit = {
+    // we need an ActorSystem to host our service
+    implicit val system = ActorSystem()
 
-  val port: Int = portArgument.value.getOrElse(8000)
-  val interface: String = interfaceArgument.value.getOrElse("0.0.0.0")
+    //create our service actor
+    val service = system.actorOf(Props[SchemaGuruRoutesActor], "schema-guru-service")
 
-  // we need an ActorSystem to host our service
-  implicit val system = ActorSystem()
-
-  //create our service actor
-  val service = system.actorOf(Props[SchemaGuruRoutesActor], "schema-guru-service")
-
-  //bind our actor to an HTTP port
-  IO(Http) ! Http.Bind(service, interface = interface, port = port)
+    //bind our actor to an HTTP port
+    IO(Http) ! Http.Bind(service, interface = options.interface, port = options.port)
+  }
 }

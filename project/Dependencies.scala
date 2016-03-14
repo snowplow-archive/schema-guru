@@ -28,8 +28,8 @@ object Dependencies {
     val jsonValidator    = "2.2.3"
     val commonsValidator = "1.4.1"
     // Scala
-    val argot            = "1.0.3"
-    val scalaz7          = "7.0.6"
+    val scopt            = "3.4.0"
+    val scalaz7          = "7.0.8"
     val json4s           = "3.2.10"   // don't upgrade to 3.2.11 https://github.com/json4s/json4s/issues/212
     val jsonpath         = "0.6.4"
     val schemaddl     	 = "0.3.0"
@@ -50,12 +50,12 @@ object Dependencies {
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
     val commonsValidator = "commons-validator"          %  "commons-validator"         % V.commonsValidator
     // Scala
-    val argot            = "org.clapper"                %% "argot"                     % V.argot
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val json4sScalaz     = "org.json4s"                 %% "json4s-scalaz"             % V.json4s
     val jsonpath         = "io.gatling"                 %% "jsonpath"                  % V.jsonpath
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
+    val scopt            = "com.github.scopt"           %% "scopt"                     % V.scopt
     // Spray
     val akka             = "com.typesafe.akka"          %% "akka-actor"                % V.akka
     val sprayCan         = "io.spray"                   %% "spray-can"                 % V.spray

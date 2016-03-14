@@ -106,10 +106,10 @@ def run_emr(profile, input_path, output_path, errors_path, log_path, ec2_keyname
         slave_instance_type="m3.xlarge",
         num_instances=3,
         enable_debugging=True,
-        ami_version="3.6",
+        ami_version="3.8",
         steps=steps,
         bootstrap_actions=bootstrap_actions,
         job_flow_role="EMR_EC2_DefaultRole",
         service_role="EMR_DefaultRole"
     )
-    print "Started jobflow " + job_id
+    print("Started jobflow " + job_id)

@@ -35,22 +35,12 @@ object SchemaGuru {
    * @param context cardinality for detecting possible enums
    * @return result result of converting instances to micro-schemas
    */
-  def convertsJsonsToSchema(jsonList: List[ValidJson], context: SchemaContext): JsonConvertResult = {
+  def convertsJsonsToSchema(jsonList: List[JValue], context: SchemaContext): JsonConvertResult = {
 
     val generator = SchemaGenerator(context)
 
-    val validJsons: List[JValue] = jsonList.flatMap {
-      case Success(json) => List(json)
-      case _ => Nil
-    }
-
-    val failJsons: List[String] = jsonList.flatMap {
-      case Failure(str) => List(str)
-      case _ => Nil
-    }
-
     val schemaList: List[ValidSchema] =
-      validJsons.map(generator.jsonToSchema(_))
+      jsonList.map(generator.jsonToSchema(_))
 
     val validSchemas: List[JsonSchema] = schemaList.flatMap {
       case Success(json) => List(json)
@@ -62,7 +52,7 @@ object SchemaGuru {
       case _ => Nil
     }
 
-    JsonConvertResult(validSchemas, failJsons ++ failSchemas)
+    JsonConvertResult(validSchemas, failSchemas)
   }
 
   /**
@@ -89,6 +79,6 @@ object SchemaGuru {
 
     val duplicates = LevenshteinAnnotator.getDuplicates(extractKeys(schema))
 
-    SchemaGuruResult(schema, jsonConvertResult.errors, Some(PossibleDuplicatesWarning(duplicates)))
+    SchemaGuruResult(Schema(schema, None), jsonConvertResult.errors, Some(PossibleDuplicatesWarning(duplicates)))
   }
 }
