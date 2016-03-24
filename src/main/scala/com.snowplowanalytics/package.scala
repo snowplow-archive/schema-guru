@@ -12,108 +12,60 @@
  */
 package com.snowplowanalytics
 
+// Scala
+import scala.collection.immutable.ListMap
+
 // Scalaz
 import scalaz._
-import Scalaz._
 
 // json4s
 import org.json4s._
-import org.json4s.JsonDSL._
+
+// Schema DDL
+import com.snowplowanalytics.schemaddl.generators.redshift.RedshiftMigration
 
 // This library
+import schemaguru.Common.{ JsonFile, SchemaDescription }
 import schemaguru.schema.JsonSchema
 
 package object schemaguru {
   /**
-   * Class for containing the result of running instance-to-microschema
-   * conversion
-   *
-   * @param schemas contain list of micro-schemas, derived from single
-   *                JSON instances. These schemas will validate only single
-   *                value against which they were derived. For eg. they contain
-   *                enum or min/max properties with single value
-   * @param errors list of error messages for all parsed instances, whether it's
-   *               invalid JSON or non-object/array value
+   * Map of Schemas to all its possible target schemas
+   * Examples:
+   * com.acme/event/1-0-0    -> [1-0-0/1-0-1, 1-0-0/1-0-2, 1-0-0/1-0-3]
+   * com.acme/event/1-0-1    -> [1-0-1/1-0-2, 1-0-1/1-0-3]
+   * com.acme/event/1-0-2    -> [1-0-2/1-0-3]
+   * com.acme/config/1-1-0   -> [1-1-0/1-0-1]
    */
-  case class JsonConvertResult(schemas: List[JsonSchema], errors: List[String])
+  type MigrationMap = Map[SchemaDescription, List[RedshiftMigration]]
+
+  type ValidMigrationMap = Map[SchemaDescription, Validation[String, List[RedshiftMigration]]]
+
 
   /**
-   * Class for containing the result of running SchemaGuru.
-   * Next processing step after ``JsonConvertResult``
-   *
-   * @param schema merged and transformed JSON Schema ready for use
-   * @param errors list of all fatal errors encountered during previous steps
-   * @param warning list of all warnings (non-fatal) encountered during
-   *                previous steps
+   * Schema criterion restricted to revision: vendor/name/m-r-*
+   * Tuple using as root key to bunch of Schemas differing only by addition
+   * (vendor, name, model, revision)
    */
-  case class SchemaGuruResult(schema: Schema, errors: List[String], warning: Option[SchemaWarning] = None) {
-
-    /**
-     * Add some errors post-factum
-     *
-     * @param newErrors list of errors
-     * @return same result with new errors appended
-     */
-    def appendErrors(newErrors: List[String]): SchemaGuruResult =
-      this.copy(errors = errors ++ newErrors)
-
-    /**
-     * Describe containing `schema` with provided information
-     * Doesn't do anything if vendor or name is None
-     *
-     * @param vendor optional vendor
-     * @param name optional name
-     * @param version version, will be 1-0-1 by default
-     * @return modified SchemaGuru result
-     */
-    def describe(vendor: Option[String], name: Option[String], version: Option[String]): SchemaGuruResult = {
-      val description = (vendor |@| name) { (v, n) =>
-        Description(v, n, version.getOrElse("1-0-0"))
-      }
-      this.copy(schema = schema.copy(description = description))
-    }
-  }
+  // TODO: replace with iglu-core SchemaCriterion
+  type RevisionCriterion = (String, String, Int, Int)
 
   /**
-   * Class for containing both resulting schema and self-describing info
-   *
-   * @param schema ready for use JSON Schema object
-   * @param description optional self-describing information
+   * Intermediate nested structure used to group schemas by revision
+   * Examples:
+   * com.acme/event/1-0-*    -> [[MigrationMap]]
+   * com.acme/event/1-1-*    -> [[MigrationMap]]
+   * com.acme/config/1-1-*   -> [[MigrationMap]]
+   * com.google/schema/1-0-* -> [[MigrationMap]]
    */
-  case class Schema(schema: JsonSchema, description: Option[Description]) {
-
-    /**
-     * Represent result as JSON
-     *
-     * @return JSON Object with resulting schema
-     */
-    def toJson: JObject = description match {
-      case Some(info) => {
-        val uri: JObject = ("$schema", Description.uri)
-        val selfObject: JObject = ("self",
-          (("vendor", info.vendor): JObject) ~
-          (("name", info.name): JObject) ~
-          (("version", info.version): JObject) ~
-           ("format", "jsonschema"))
-
-        uri.merge(selfObject).merge(schema.toJson)
-      }
-      case None => schema.toJson
-    }
-  }
+  type GroupedMigrationMap = Map[RevisionCriterion, MigrationMap]
 
   /**
-   * Used to annotate schema with data for self-describing schema
-   *
-   * @param vendor vendor of schema
-   * @param name name of schema (parameter isn't optional)
-   * @param version optional version
+   * List of Schema properties
+   * First-level key is arbitrary property (like id, name etc)
+   * Second-level is map of JSON Schema properties (type, enum etc)
    */
-  case class Description(vendor: String, name: String, version: String)
-
-  object Description {
-    val uri = "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#"
-  }
+  type PropertyList = ListMap[String, Map[String, String]]
 
   /**
    * Result of JSON segmentation
@@ -137,11 +89,6 @@ package object schemaguru {
    * Type Alias for a Valid list of JSONs
    */
   type ValidJsonList = List[Validation[String, JValue]]
-
-  /**
-   * Class holding JSON with file name
-   */
-  case class JsonFile(fileName: String, content: JValue)
 
   /**
    * Type Alias for a Valid list of JSON files

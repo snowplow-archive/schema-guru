@@ -99,6 +99,23 @@ Following command will just save Redshift (default ``--db`` value) DDL to curren
 $ ./schema-guru-0.5.0 ddl {{input}}
 ```
 
+If you specified as input a directory with several Self-describing JSON Schemas belonging to a single REVISION, Schema Guru will also generate a migrations.
+So, you can migratte any of previous tables to any of subsequent.
+For example, having following list of Self-describing JSON Schemas as input:
+
+* schemas/com.acme/click_event/1-0-0
+* schemas/com.acme/click_event/1-0-1
+* schemas/com.acme/click_event/1-0-2
+
+You will have following migrations as output:
+
+* sql/com.acme/click_event/1-0-0/1-0-1 to alter table from 1-0-0 to 1-0-1
+* sql/com.acme/click_event/1-0-0/1-0-2 to alter table from 1-0-0 to 1-0-2
+* sql/com.acme/click_event/1-0-1/1-0-2 to alter table from 1-0-1 to 1-0-2
+
+This migrations (and all subsequent table definitions) are aware of column order and it will never put a new column in the middle of table,
+so you can safely alter your tables while they belong to a single REVISION.
+
 You also can specify directory for output:
 
 ```bash
@@ -110,6 +127,9 @@ If you're not a Snowplow Platform user, don't use **[Self-describing Schema] [se
 ```bash
 $ ./schema-guru-0.5.0 ddl --raw {{input}}
 ```
+
+But bear in mind that Self-describing Schemas bring many benefits. 
+For example, raw Schemas will not preserve an order for your columns (it just impossible!) and also you will not have a migrations.
 
 You may also want to get JSONPaths file for Redshift's **[COPY] [redshift-copy]** command. It will place ``jsonpaths`` dir alongside with ``sql``:
 
