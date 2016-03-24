@@ -26,6 +26,7 @@ import org.json4s.{ JArray, JValue }
 import org.json4s.jackson.JsonMethods.pretty
 
 // This library
+import Common.{ SchemaGuruResult, SchemaVer }
 import generators.PredefinedEnums.predefined
 import schema.Helpers.SchemaContext
 import utils.JsonPathExtractor
@@ -42,7 +43,7 @@ case class SchemaCommand private[schemaguru](
   enumSets: Seq[String] = Nil,
   vendor: Option[String] = None,
   name: Option[String] = None,
-  schemaver: Option[String] = None,
+  schemaver: Option[SchemaVer] = None,
   schemaBy: Option[String] = None,
   noLength: Boolean = false,
   ndjson: Boolean = false) extends SchemaGuruCommand {

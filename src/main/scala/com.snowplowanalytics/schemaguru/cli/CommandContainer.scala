@@ -10,10 +10,14 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.schemaguru.cli
+package com.snowplowanalytics.schemaguru
+package cli
 
 // Java
 import java.io.File
+
+// This library
+import Common.SchemaVer
 
 /**
  * Common sealed traits for supported Schema Guru commands
@@ -62,7 +66,7 @@ case class CommandContainer(command: Option[SchemaGuruCommand] = None) {
       case other => other
     }
 
-  def setSchemaver(schemaver: String): Option[SchemaGuruCommand] =
+  def setSchemaver(schemaver: SchemaVer): Option[SchemaGuruCommand] =
     command match {
       case Some(schema: SchemaCommand) => Some(schema.copy(schemaver = Some(schemaver)))
       case other => other

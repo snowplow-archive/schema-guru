@@ -50,6 +50,8 @@ package object schemaguru {
   // TODO: replace with iglu-core SchemaCriterion
   type RevisionCriterion = (String, String, Int, Int)
 
+  type ModelCriterion = (String, String, Int)
+
   /**
    * Intermediate nested structure used to group schemas by revision
    * Examples:

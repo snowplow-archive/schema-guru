@@ -30,6 +30,9 @@ import com.fasterxml.jackson.core.JsonParseException
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
+// This library
+import Common.{ JsonFile, splitValidations }
+
 /**
  * Functions responsible for getting JValues (possible invalid) from files,
  * directories, etc
@@ -45,16 +48,8 @@ object FileSystemJsonGetters {
    * @param ndjson whether files should containing newline-delimilted JSON
    * @return pair with list of error and list of successful parsed JSONs
    */
-  def getJsons(input: File, ndjson: Boolean): (List[String], List[JValue]) = {
-    val allJsons = jsonList(input, ndjson)
-    allJsons.foldLeft((List.empty[String], List.empty[JValue]))(splitValidated)
-  }
-
-  def splitValidated[F, S](acc: (List[F], List[S]), current: Validation[F, S]): (List[F], List[S]) =
-    current match {
-      case Success(json) => (acc._1, json :: acc._2)
-      case Failure(fail) => (fail :: acc._1, acc._2)
-    }
+  def getJsons(input: File, ndjson: Boolean): (List[String], List[JValue]) =
+    splitValidations(jsonList(input, ndjson))
 
   /**
    * Inspect what `input` parameter is (file or dir) and load
@@ -123,12 +118,24 @@ object FileSystemJsonGetters {
     }
   }
 
-  def getJsonFiles(file: File): ValidJsonFileList = {
+  /**
+   * Get list of JSON Files from either a directory (multiple JSON Files)
+   * or single file (one-element list)
+   *
+   * @param file Java File object pointing to File or dir
+   * @return list of validated JsonFiles
+   */
+  def getJsonFiles(file: File): ValidJsonFileList =
     if (!file.exists()) Failure(s"Path [${file.getAbsolutePath}] doesn't exist") :: Nil
     else if (file.isDirectory) for { f <- listAllFiles(file) } yield getJsonFile(f)
     else getJsonFile(file) :: Nil
-  }
 
+  /**
+   * Get Json File from a single [[File]] object
+   *
+   * @param file Java File object
+   * @return validated Json File or failure message
+   */
   def getJsonFile(file: File): Validation[String, JsonFile] =
     getJsonFromFile(file) match {
       case Success(json) => JsonFile(file.getName, json).success
@@ -203,7 +210,13 @@ object FileSystemJsonGetters {
       case _                  => file.getAbsolutePath.failure
     }
   }
-  
+
+  /**
+   * Return a validated array or error
+   *
+   * @param file path to file with JSON-array
+   * @return a validation either be correct JArray or failed key as a string
+   */
   def getJArrayFromFile(path: String): Validation[String, JArray] =
     getJArrayFromFile(new File(path))
 }

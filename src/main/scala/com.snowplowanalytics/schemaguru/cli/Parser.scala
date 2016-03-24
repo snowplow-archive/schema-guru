@@ -24,6 +24,7 @@ import scopt.OptionParser
 
 // This library
 import generators.PredefinedEnums.predefined
+import Common.SchemaVer
 
 object Parser {
   val parser = new OptionParser[CommandContainer]("schema-guru") {
@@ -82,11 +83,16 @@ object Parser {
             else failure("Option --name can contain only alphanumeric characters, underscores and hyphens") },
 
         opt[String]("schemaver")
-          action { (x, c) => c.copy(command = c.setSchemaver(x)) }
+          action { (x, c) =>
+            SchemaVer.parse(x) match {
+              case Some(ver) => c.copy(command = c.setSchemaver(ver))
+              case None => c
+            }
+          }
           valueName "<m-r-v>"
           text "Schema version for Self-describing data in Schemaver format\n\tDefault: 1-0-0"
           validate { o =>
-            if (o.matches("\\d+\\-\\d+\\-\\d+")) success
+            if (SchemaVer.parse(o).isDefined) success
             else failure("Option --schemaver must match Schemaver format (example: 1-2-1)") },
 
         opt[String]("schema-by")

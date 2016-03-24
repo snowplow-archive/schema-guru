@@ -40,8 +40,8 @@ case class RedshiftMigration(
   from: SchemaVer,
   to: SchemaVer,
   diff: SchemaDiff) {
-  def toDdl: String = toDdl(Some("atomic"))
-  def toDdl(tableSchema: Option[String]) = RedshiftMigration.toDdl(this, tableSchema)
+  def toDdl: String = toDdl(Some("atomic"), 4096)
+  def toDdl(tableSchema: Option[String], varcharSize: Int) = RedshiftMigration.toDdl(this, tableSchema, varcharSize)
 }
 
 object RedshiftMigration {
@@ -74,7 +74,7 @@ object RedshiftMigration {
    * @param tableSchema optional DB schema (not JSON Schema!)
    * @return DDL ready to be written to file
    */
-  def toDdl(migration: RedshiftMigration, tableSchema: Option[String]) = {
+  def toDdl(migration: RedshiftMigration, tableSchema: Option[String], varcharSize: Int) = {
     val description    = SelfDescInfo(migration.vendor, migration.name, migration.to.asString)
     val oldSchemaUri   = getSchemaName(SelfDescInfo(migration.vendor, migration.name, migration.from.asString))
     val newSchemaUri   = getSchemaName(description)                           // e.g. iglu:com.acme/event/jsonschema/1-0-1
@@ -84,12 +84,11 @@ object RedshiftMigration {
 
     val transaction    =
       if (migration.diff.added.nonEmpty) {
-        val columns    = snakifyColumns(getColumnsDdl(migration.diff.added, Set.empty, 4096).toList)
+        val columns    = snakifyColumns(getColumnsDdl(migration.diff.added, Set.empty, varcharSize).toList)
         val tabulation = getTabulation(columns)
         val columnsDdl = columns.map(_.toFormattedDdl(tabulation)).map("    ADD COLUMN" + _).mkString(",\n") + ";"
         s"""|  ALTER TABLE $fullTableName
-            |$columnsDdl
-            |""".stripMargin
+            |$columnsDdl""".stripMargin
       } else { """   -- NO ADDED COLUMNS CAN BE EXPRESSED IN SQL MIGRATION""" }
 
     s"""|-- WARNING: only apply this file to your database if the following SQL returns the expected:

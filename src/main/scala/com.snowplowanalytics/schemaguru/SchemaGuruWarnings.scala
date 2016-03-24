@@ -51,7 +51,7 @@ case class PossibleDuplicatesWarning(duplicates: Set[(String, String)]) extends 
 
   def jsonMessage =
     if (duplicates.isEmpty) { JNothing }
-    else { ("message", "Possibly duplicated keys found") ~ ("items", duplicates) }
+    else { ("message", "Possibly duplicated keys found").~(("items", duplicates)) }
 
   def consoleMessage =
     if (duplicates.isEmpty) {

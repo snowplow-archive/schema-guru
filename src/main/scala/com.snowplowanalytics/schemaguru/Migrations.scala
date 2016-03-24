@@ -20,7 +20,6 @@ import scalaz._
 import Scalaz._
 
 // Schema DDL
-import com.snowplowanalytics.schemaddl.SchemaData.FlatSchema
 import com.snowplowanalytics.schemaddl.generators.SchemaFlattener.flattenJsonSchema
 import com.snowplowanalytics.schemaddl.generators.redshift.RedshiftMigration
 
@@ -242,10 +241,10 @@ object Migrations {
    * @param migrationMap migration map of all Schemas created with [[buildMigrationMap]]
    * @return flat list of [[TextFile]] ready to be written
    */
-  def reifyMigrationMap(migrationMap: ValidMigrationMap): List[Validation[String, TextFile]] = {
+  def reifyMigrationMap(migrationMap: ValidMigrationMap, dbSchema: Option[String], varcharSize: Int): List[Validation[String, TextFile]] = {
     val validationFileList = migrationMap.map {
       case (source, Success(migrations)) =>
-        migrations.map(m => TextFile(m.to.asString + ".sql", m.toDdl))
+        migrations.map(m => TextFile(m.to.asString + ".sql", m.toDdl(dbSchema, varcharSize)))
           .map(_.setBasePath(source.version.asString))
           .map(_.setBasePath(source.name))
           .map(_.setBasePath(source.vendor))

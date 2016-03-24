@@ -16,7 +16,7 @@ package cli
 // specs2
 import org.specs2.Specification
 
-import com.snowplowanalytics.schemaddl.SchemaData.SelfDescInfo
+import com.snowplowanalytics.schemaguru.Common.{ SchemaDescription, SchemaVer }
 
 class CliSpec extends Specification { def is = s2"""
   Check CLI specification
@@ -25,9 +25,11 @@ class CliSpec extends Specification { def is = s2"""
 
   def e1 = {
     val fileName = ("com.acme", "event_name_1")
-    DdlCommand.getFileName(SelfDescInfo("com.acme", "event_name", "1-00-0")) must beEqualTo(fileName) and(
-      DdlCommand.getFileName(SelfDescInfo("com.acme", "event_name", "1-10-0")) must beEqualTo(fileName) and(
-        DdlCommand.getFileName(SelfDescInfo("com.acme", "event_name", "1-0-10")) must beEqualTo(fileName) and(
-          DdlCommand.getFileName(SelfDescInfo("com.acme", "event_name", "1-22-3")) must beEqualTo(fileName))))
+    val fileNameNext = ("com.acme", "event_name_2")
+    DdlCommand.getFileName(SchemaDescription("com.acme", "event_name", SchemaVer(1,0,0))) must beEqualTo(fileName) and(
+      DdlCommand.getFileName(SchemaDescription("com.acme", "event_name", SchemaVer(1,10,0))) must beEqualTo(fileName) and(
+        DdlCommand.getFileName(SchemaDescription("com.acme", "event_name", SchemaVer(1,0,10))) must beEqualTo(fileName) and(
+          DdlCommand.getFileName(SchemaDescription("com.acme", "event_name", SchemaVer(1,22,3))) must beEqualTo(fileName) and(
+            DdlCommand.getFileName(SchemaDescription("com.acme", "event_name", SchemaVer(2,2,3))) must beEqualTo(fileNameNext)))))
   }
 }

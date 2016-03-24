@@ -29,7 +29,7 @@ import org.apache.spark.rdd.RDD
 
 // This library
 import schema.Helpers.SchemaContext
-import utils.FileSystemJsonGetters.splitValidated
+import Common.{ DerivedSchema, splitValidations }
 
 object SchemaDerive {
   private val AppName = "SchemaDeriveJob"
@@ -94,7 +94,7 @@ object SchemaDerive {
       case None => {
         val convertResult = SchemaGuruRDD.convertsJsonsToSchema(jsonList, schemaContext)
         val mergeResult = SchemaGuruRDD.mergeAndTransform(convertResult, schemaContext)
-        val schema = Schema(mergeResult.schema, options.selfDescribing)
+        val schema = DerivedSchema(mergeResult.schema, options.selfDescribing)
         val errors = mergeResult.errors.collect.toList  ++ mergeResult.warnings.map(_.consoleMessage)
         sc.parallelize(List(OutputResult(schema, Some("result.json"), errors, options.errorsPath)))
       }
@@ -102,7 +102,7 @@ object SchemaDerive {
         val nameToJsonsMapping: RDD[(String, Iterable[ValidJson])] = JsonPathExtractorRDD.mapByPathRDD(path, jsonList)
         nameToJsonsMapping map {
           case (key, jsonValidations) => {  // jsons are Lists nested in RDD
-            val (mappingErrors, jsons) = jsonValidations.foldLeft((List.empty[String], List.empty[JValue]))(splitValidated)
+            val (mappingErrors, jsons) = splitValidations(jsonValidations.toList)
             val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, schemaContext)
             val mergeResult = SchemaGuru.mergeAndTransform(convertResult, schemaContext)
             val describingInfo = options.selfDescribing.map(_.copy(name = key))
@@ -110,7 +110,7 @@ object SchemaDerive {
             val file =
               if (key == "$SchemaGuruFailed") None
               else Some(fileName)
-            val schema = Schema(mergeResult.schema.schema, describingInfo)
+            val schema = DerivedSchema(mergeResult.schema.schema, describingInfo)
             val errors = mergeResult.errors ++ mergeResult.warning.map(_.consoleMessage) ++ mappingErrors
             OutputResult(schema, file, errors, options.errorsPath)
           }

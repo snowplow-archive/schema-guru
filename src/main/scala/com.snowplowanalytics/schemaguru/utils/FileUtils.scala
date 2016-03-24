@@ -44,7 +44,7 @@ object FileUtils {
           printToFile(file) { _.println(content) }
 
           // Output a success message
-          s"File [${path}] was written successfully!".success
+          s"File [${file.getAbsolutePath}] was written successfully!".success
         }
         case false => s"Could not make new directory to store files in - Check write permissions".failure
       }

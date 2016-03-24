@@ -223,8 +223,15 @@ object Common {
       (vendor, name, version.model, version.revision)
 
     /**
+     * Get Schema Criterion for this model
+     * Example: com.acme/someEvent/1-*-* for com.acme/someEvent/1-2-2
+     */
+    def modelCriterion: ModelCriterion =
+      (vendor, name, version.model)
+
+    /**
      * Get cannonical Schema path
- *
+     *
      * @return
      */
     def toPath: String =

@@ -13,6 +13,8 @@
 package com.snowplowanalytics.schemaguru
 package sparkjob
 
+import Common.DerivedSchema
+
 /**
  * Case class containing all information for output.
  * Result, path to output it, errors happened during processing set of
@@ -24,5 +26,5 @@ package sparkjob
  * @param errorsPath path to output errors
  */
 // TODO: use it in CLI
-case class OutputResult(schema: Schema, schemaPath: Option[String], errors: List[String], errorsPath: Option[String])
+case class OutputResult(schema: DerivedSchema, schemaPath: Option[String], errors: List[String], errorsPath: Option[String])
 

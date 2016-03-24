@@ -18,6 +18,7 @@ import Scalaz._
 
 import org.json4s._
 
+import Common.{ SchemaDescription, SchemaVer }
 import generators.PredefinedEnums.predefined
 
 /**
@@ -32,7 +33,7 @@ case class SparkJobCommand private[sparkjob](
   enumSets: Boolean = false,
   vendor: Option[String] = None,
   name: Option[String] = None,
-  schemaver: Option[String] = None,
+  schemaver: Option[SchemaVer] = None,
   schemaBy: Option[String] = None,
   noLength: Boolean = false,
   ndjson: Boolean = false,
@@ -47,8 +48,8 @@ case class SparkJobCommand private[sparkjob](
     (jsonPath, output)
   }
 
-  val selfDescribing: Option[Description] = (vendor |@| name) { (v, n) =>
-    Description(v, n, schemaver.getOrElse("1-0-0"))
+  val selfDescribing: Option[SchemaDescription] = (vendor |@| name) { (v, n) =>
+    SchemaDescription(v, n, schemaver.getOrElse(SchemaVer(1,0,0)))
   }
 
   lazy val successfulEnumSets: List[JArray] =

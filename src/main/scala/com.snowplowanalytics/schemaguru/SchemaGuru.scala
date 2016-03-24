@@ -20,6 +20,7 @@ import Scalaz._
 import org.json4s.JValue
 
 // This library
+import Common.{ JsonConvertResult, DerivedSchema, SchemaGuruResult }
 import generators.{ SchemaGenerator, LevenshteinAnnotator }
 import schema.JsonSchema
 import schema.Helpers._
@@ -40,7 +41,7 @@ object SchemaGuru {
     val generator = SchemaGenerator(context)
 
     val schemaList: List[ValidSchema] =
-      jsonList.map(generator.jsonToSchema(_))
+      jsonList.map(generator.jsonToSchema)
 
     val validSchemas: List[JsonSchema] = schemaList.flatMap {
       case Success(json) => List(json)
@@ -79,6 +80,6 @@ object SchemaGuru {
 
     val duplicates = LevenshteinAnnotator.getDuplicates(extractKeys(schema))
 
-    SchemaGuruResult(Schema(schema, None), jsonConvertResult.errors, Some(PossibleDuplicatesWarning(duplicates)))
+    SchemaGuruResult(DerivedSchema(schema, None), jsonConvertResult.errors, Some(PossibleDuplicatesWarning(duplicates)))
   }
 }

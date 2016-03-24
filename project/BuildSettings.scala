@@ -25,7 +25,7 @@ object BuildSettings {
     crossScalaVersions    :=  Seq("2.10.6", "2.11.7"),
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
                                   "-unchecked", "-feature",
-                                  "-target:jvm-1.7"),
+                                  "-Xfatal-warnings", "-target:jvm-1.7"),
     scalacOptions in Test :=  Seq("-Yrangepos"),
     resolvers             ++= Dependencies.resolutionRepos
   )
