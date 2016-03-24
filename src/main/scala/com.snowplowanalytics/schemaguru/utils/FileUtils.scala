@@ -14,7 +14,10 @@ package com.snowplowanalytics.schemaguru
 package utils
 
 // Java
-import java.io.{ PrintWriter, File }
+import java.io.{ IOException, PrintWriter, File }
+
+// Scala
+import scala.io.Source
 
 // Scalaz
 import scalaz._
@@ -25,6 +28,38 @@ import Scalaz._
  */
 object FileUtils {
   /**
+   * Check if file has changed content
+   * All lines changed starting with -- (SQL comment) or blank lines
+   * are ignored
+   *
+   * @param file existing file to check
+   * @param content new content
+   * @return true if file has different content or unavailable
+   */
+  def isNewContent(file: File, content: String): Boolean = {
+    try {
+      val oldContent = Source.fromFile(file)
+        .getLines()
+        .map(_.trim)
+        .filterNot(_.isEmpty)
+        .filterNot(_.startsWith("--"))
+        .toList
+
+      val newContent = content
+        .split("\n")
+        .map(_.trim)
+        .filterNot(_.isEmpty)
+        .filterNot(_.startsWith("--"))
+        .toList
+
+      oldContent != newContent
+
+    } catch {
+      case e: IOException => true
+    }
+  }
+
+  /**
    * Creates a new file with the contents of the list inside.
    *
    * @param fileName The name of the new file
@@ -32,19 +67,25 @@ object FileUtils {
    * @param content Content of file
    * @return a success or failure string about the process
    */
-  def writeToFile(fileName: String, fileDir: String, content: String): Validation[String, String] = {
+  def writeToFile(fileName: String, fileDir: String, content: String, force: Boolean = false): Validation[String, String] = {
     val path = fileDir + "/" + fileName
     try {
       makeDir(fileDir) match {
         case true => {
           // Attempt to open the file...
           val file = new File(path)
-
-          // Print the contents of the list to the new file...
-          printToFile(file) { _.println(content) }
-
-          // Output a success message
-          s"File [${file.getAbsolutePath}] was written successfully!".success
+          lazy val contentChanged = isNewContent(file, content)
+          if (!file.exists()) {
+            printToFile(file)(_.println(content))
+            s"File [${file.getAbsolutePath}] was written successfully!".success
+          } else if (contentChanged && !force) {
+            s"File [${file.getAbsolutePath}] already exists and probably was modified manually. You can use --force to override".failure
+          } else if (force) {
+            printToFile(file)(_.println(content))
+            s"File [${file.getAbsolutePath}] was overriden successfully!".success
+          } else {
+            s"File [${file.getAbsolutePath}] was not modified".success
+          }
         }
         case false => s"Could not make new directory to store files in - Check write permissions".failure
       }

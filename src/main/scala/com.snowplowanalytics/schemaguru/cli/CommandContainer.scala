@@ -24,6 +24,13 @@ import Common.SchemaVer
  */
 trait SchemaGuruCommand
 
+/**
+ * Command container was created due unability of scopt create
+ * subcommands with different case classes configurations
+ * It also contain shorthand-methods
+ *
+ * @param command one of required subcommands
+ */
 case class CommandContainer(command: Option[SchemaGuruCommand] = None) {
 
   // Common
@@ -130,6 +137,12 @@ case class CommandContainer(command: Option[SchemaGuruCommand] = None) {
   def setNoHeader(flag: Boolean): Option[SchemaGuruCommand] =
     command match {
       case Some(ddl: DdlCommand) => Some(ddl.copy(noHeader = flag))
+      case other => other
+    }
+
+  def setForce(flag: Boolean): Option[SchemaGuruCommand] =
+    command match {
+      case Some(ddl: DdlCommand) => Some(ddl.copy(force = flag))
       case other => other
     }
 }

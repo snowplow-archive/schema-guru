@@ -173,8 +173,8 @@ object Common {
      *
      * @return validation with success or error message
      */
-    def write: Validation[String, String] =
-      writeToFile(file.getName, file.getParentFile.getAbsolutePath, content)
+    def write(force: Boolean = false): Validation[String, String] =
+      writeToFile(file.getName, file.getParentFile.getAbsolutePath, content, force)
   }
 
   /**

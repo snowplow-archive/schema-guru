@@ -141,7 +141,7 @@ The most embarrassing part of shifting from dynamic-typed world to static-typed 
 How to represent them in SQL DDL? It's a taught question and we think there's no ideal solution.
 Thus we provide you two options. By default product types will be transformed as most general ``VARCHAR(4096)``.
 But there's another way - you can split column with product types into separate ones with it's types as postfix, for example property ``model`` with type ``["string", "integer"]`` will be transformed into two columns ``mode_string`` and ``model_integer``.
-This behaviour can be achieved with ``--split-product-types``.
+This behavior can be achieved with ``--split-product-types``.
 
 Another thing everyone need to consider is default VARCHAR size. If there's no clues about it (like ``maxLength``) 4096 will be used.
 You can also specify this default value:
@@ -155,6 +155,16 @@ You can also specify Redshift Schema for your table. For non-raw mode ``atomic``
 ```bash
 $ ./schema-guru-0.5.0 ddl --raw --schema business {{input}}
 ```
+
+Some users do not full rely on Schema Guru JSON Schema derivation or DDL generation and edit their DDLs manually.
+By default, Schema Guru will not override your files (either DDLs and migrations) if user made any significant changes (comments and whitespaces are not significant).
+Instead Schema Guru will just warn user that file has been changed manually.
+To change this behavior you may specify ``--force`` flag.
+
+```bash
+$ ./schema-guru-0.6.0 ddl --force {{input}}
+```
+
 
 ### Web UI
 

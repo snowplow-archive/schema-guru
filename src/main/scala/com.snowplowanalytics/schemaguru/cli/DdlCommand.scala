@@ -13,6 +13,7 @@
 package com.snowplowanalytics.schemaguru
 package cli
 
+// Scala
 import scala.language.implicitConversions
 
 // Scalaz
@@ -45,7 +46,8 @@ case class DdlCommand private[cli] (
   schema: Option[String] = None,  // empty for raw, "atomic" for non-raw
   varcharSize: Int = 4096,
   splitProduct: Boolean = false,
-  noHeader: Boolean = false) extends SchemaGuruCommand {
+  noHeader: Boolean = false,
+  force: Boolean = false) extends SchemaGuruCommand {
 
   import DdlCommand._
 
@@ -250,17 +252,17 @@ case class DdlCommand private[cli] (
     result.ddls
           .map(_.setBasePath("sql"))
           .map(_.setBasePath(output.getAbsolutePath))
-          .map(_.write).map(printMessage)
+          .map(_.write(force)).map(printMessage)
 
     result.jsonPaths
           .map(_.setBasePath("jsonpaths"))
           .map(_.setBasePath(output.getAbsolutePath))
-          .map(_.write).map(printMessage)
+          .map(_.write(force)).map(printMessage)
 
     result.migrations
           .map(_.setBasePath("sql"))
           .map(_.setBasePath(output.getAbsolutePath))
-          .map(_.write).map(printMessage)
+          .map(_.write(force)).map(printMessage)
 
     result.warnings.map(printMessage)
   }

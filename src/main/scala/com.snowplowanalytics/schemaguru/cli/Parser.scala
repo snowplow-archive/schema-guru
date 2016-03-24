@@ -170,6 +170,10 @@ object Parser {
           action { (_, c) => c.copy(command = c.setNoHeader(true)) }
           text "Do not place header comments into output DDL",
 
+        opt[Unit]("force")
+          action { (_, c) => c.copy(command = c.setForce(true)) }
+          text "Force override existing manually-edited files",
+
         checkConfig {
           case CommandContainer(Some(command: DdlCommand))
             if !command.input.exists() =>
