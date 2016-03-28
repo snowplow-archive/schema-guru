@@ -1,3 +1,12 @@
+Version 0.6.0 (2016-04-07)
+--------------------------
+Added force flag (#141)
+Fixed column ordering for Redshift tables across ADDITIONs (#135)
+Added SQL migrations between schema ADDITIONs (#134)
+Replaced argot with scopt (#124)
+Reimplemented --schema-by with proper Jackson converting (#125)
+Removed AWS-related tools from up.playbooks (#146)
+
 Version 0.5.0 (2016-02-11)
 --------------------------
 Bumped schema-ddl to 0.3.0 (#130)
