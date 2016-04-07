@@ -241,7 +241,7 @@ case class DdlCommand private[cli] (
   private def makeJsonPaths(ddl: TableDefinition): Option[TextFile] = {
     val jsonPath = withJsonPaths.option(getJsonPathsFile(ddl.table.columns, rawMode))
     jsonPath.map { content =>
-      TextFile(new File(new File(ddl.path), ddl.fileName), content)
+      TextFile(new File(new File(ddl.path), ddl.fileName + ".json"), content)
     }
   }
 
