@@ -229,7 +229,7 @@ case class DdlCommand private[cli] (
     val header = if (noHeader) "" else ddl.header ++ "\n\n"
     val schemaCreate = if (ddl.schemaCreate.isEmpty) "" else ddl.schemaCreate ++ "\n\n"
     val tableDefinition = header ++ schemaCreate ++ ddl.snakifyTable.toDdl ++ "\n\n" ++ ddl.comment.toDdl
-    TextFile(new File(new File(ddl.path), ddl.fileName), tableDefinition)
+    TextFile(new File(new File(ddl.path), ddl.fileName + ".sql"), tableDefinition)
   }
 
   /**
