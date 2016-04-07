@@ -1,3 +1,8 @@
+Version 0.6.1 (2016-04-08)
+--------------------------
+Fixed regression where SQL file for _MODEL is missing .sql extension (#148)
+Fixed regression where JSON Paths file is missing .json extension (#149)
+
 Version 0.6.0 (2016-04-07)
 --------------------------
 Added force flag (#141)
