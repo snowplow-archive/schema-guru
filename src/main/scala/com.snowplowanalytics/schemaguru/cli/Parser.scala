@@ -50,7 +50,7 @@ object Parser {
         opt[Int]("enum")
           action { (x, c) => c.copy(command = c.setEnumCardinality(x)) }
           valueName "<n>"
-          text "Cardinality to evaluate enum property"
+          text "Cardinality to evaluate enum property. 0 means do not derive\n\tDefault: 0"
           validate { o => if (o > 0) success else failure("Option --enum cannot be less than zero") },
 
         opt[Seq[String]]("enum-sets")
@@ -135,7 +135,6 @@ object Parser {
 
         opt[File]("output")
           action { (x, c) => c.setOutput(x) }
-//          action { (x, c) => c.copy(command = c.setOutput(x)) }
           valueName "<path>"
           text "Directory to put generated data\n\tDefault: current dir",
 
