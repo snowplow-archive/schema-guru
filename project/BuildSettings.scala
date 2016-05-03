@@ -20,7 +20,7 @@ object BuildSettings {
   // Common settings for all our projects
   lazy val commonSettings = Seq[Setting[_]](
     organization          :=  "com.snowplowanalytics",
-    version               :=  "0.6.1",
+    version               :=  "0.6.2",
     scalaVersion          :=  "2.10.6",
     crossScalaVersions    :=  Seq("2.10.6", "2.11.7"),
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
