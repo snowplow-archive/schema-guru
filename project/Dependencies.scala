@@ -32,7 +32,7 @@ object Dependencies {
     val scalaz7          = "7.0.8"
     val json4s           = "3.2.10"   // don't upgrade to 3.2.11 https://github.com/json4s/json4s/issues/212
     val jsonpath         = "0.6.4"
-    val schemaddl     	 = "0.3.0"
+    val schemaddl        = "0.3.1"
     val akka             = "2.3.9"
     val spray            = "1.3.3"
     val spark            = "1.3.1"
