@@ -105,7 +105,7 @@ case class DdlCommand private[cli] (
     val migrationMap = Migrations.buildMigrationMap(schemas)
     val validOrderingMap = Migrations.getOrdering(migrationMap)
     val orderingMap = validOrderingMap.collect { case (k, Success(v)) => (k, v) }
-    val (migrationErrors, migrations) = splitValidations(Migrations.reifyMigrationMap(migrationMap, schema, varcharSize))
+    val (migrationErrors, migrations) = splitValidations(Migrations.reifyMigrationMap(migrationMap, Some(dbSchema), varcharSize))
 
     // Order table-definitions according with migrations
     val ddlFiles = ddlMap.map { case (description, table) =>
@@ -155,8 +155,8 @@ case class DdlCommand private[cli] (
     val schemaCreate = Ddl.Schema(dbSchema).toDdl
     val combined     = getFileName(description)
     val tableName    = SU.getTableName(description)
-    val table        = RDG.getTableDdl(flatSchema, tableName, schema, varcharSize, rawMode)
-    val comment      = RDG.getTableComment(tableName, schema, description)
+    val table        = RDG.getTableDdl(flatSchema, tableName, Some(dbSchema), varcharSize, rawMode)
+    val comment      = RDG.getTableComment(tableName, Some(dbSchema), description)
     TableDefinition(combined._1, combined._2, RDG.RedshiftDdlHeader, schemaCreate, table, comment)
   }
 
