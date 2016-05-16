@@ -57,14 +57,14 @@ $ ./schema-guru-0.6.2 schema --enum 5 {{input}}
 If you know that some particular set of values can appear, but don't want to set big enum cardinality, you may want to specify predefined enum set with ``--enum-sets`` multioption, like this:
 
 ```bash
-$ ./schema-guru-0.6.2 schema --enum-sets iso_4217 --enum-sets iso_3166-1_aplha-3 /path/to/instances
+$ ./schema-guru-0.6.2 schema --enum-sets iso_4217 --enum-sets iso_3166-1_alpha-3 /path/to/instances
 ```
 
 Currently Schema Guru includes following built-in enum sets (written as they should appear in CLI):
 
 * [iso_4217] [iso-4217]
-* [iso_3166-1_aplha-2] [iso-3166-1-alpha-2]
-* [iso_3166-1_aplha-3] [iso-3166-1-alpha-3]
+* [iso_3166-1_alpha-2] [iso-3166-1-alpha-2]
+* [iso_3166-1_alpha-3] [iso-3166-1-alpha-3]
 * Special `all` set, which mean all built-in enums will be included
 
 If you need to include very specific enum set, you can define it by yourself in JSON file with array like this:
