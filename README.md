@@ -87,6 +87,12 @@ To avoid this too strict Schema, you can use `--no-length` option.
 $ ./schema-guru-0.6.2 schema --no-length /path/to/few-instances
 ```
 
+By default Schema Guru sets `"additionalProperties" : true`. To set `"additionalProperties" : false` you can use `--no-additional-properties` option.
+
+```bash
+$ ./schema-guru-0.6.2 schema --no-additional-properties
+```
+
 #### DDL derivation
 
 Like for Schema derivation, for DDL input may be also single file with JSON Schema or directory containing JSON Schemas.

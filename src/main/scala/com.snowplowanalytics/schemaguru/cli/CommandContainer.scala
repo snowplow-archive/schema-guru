@@ -97,6 +97,12 @@ case class CommandContainer(command: Option[SchemaGuruCommand] = None) {
       case other => other
     }
 
+  def setNoAdditionalProperties(flag: Boolean): Option[SchemaGuruCommand] =
+    command match {
+      case Some(schema: SchemaCommand) => Some(schema.copy(noAdditionalProperties = flag))
+      case other => other
+    }
+
   // ddl
   def setSchema(name: String): Option[DdlCommand] =
     command match {

@@ -30,21 +30,25 @@ import org.json4s.jackson.JsonMethods._
 // This library
 import generators.SchemaGenerator
 
-class JsonObjectAnnotatorSpec extends Specification with JsonMatchers with ValidationMatchers { def is = s2"""
+class JsonObjectAnnotatorSpec extends Specification with JsonMatchers with ValidationMatchers {
+  def is =
+    s2"""
   Check JsonObjectAnnotator
     extract all nested keys     $extractAllKeys
+    check additional properties     $additionalPropsDefault
+    check no additional properties     $additionalPropsNo
   """
 
   val schemaWithObjectJson: JObject =
-    ("type" -> List("string", "object")) ~    // object has higher priority
-    ("properties" ->
-      ("key" ->
-        ("type" -> "string"))) ~
-    ("additionalProperties" -> false)
+    ("type" -> List("string", "object")) ~ // object has higher priority
+      ("properties" ->
+        ("key" ->
+          ("type" -> "string"))) ~
+      ("additionalProperties" -> false)
 
   val schemaWithPrimitiveTypesJson: JObject =
     ("type" -> List("string", "number")) ~
-    ("format" -> "date-time")
+      ("format" -> "date-time")
 
   def extractAllKeys = {
     val context = Helpers.SchemaContext(0)
@@ -60,5 +64,33 @@ class JsonObjectAnnotatorSpec extends Specification with JsonMatchers with Valid
     val json = parse(Source.fromURL(getClass.getResource("/duplicates/schema_with_many_nested_objects.json")).mkString)
     val schema = generator.jsonToSchema(json)
     schema.map(Helpers.extractKeys(_)) must beSuccessful(keys)
+  }
+
+  def additionalPropsDefault = {
+    val context = Helpers.SchemaContext(0)
+    val generator = SchemaGenerator(context)
+
+    val json = parse(Source.fromURL(getClass.getResource("/duplicates/schema_with_many_nested_objects.json")).mkString)
+    val schema = generator.jsonToSchema(json)
+    val jsonFiltered = schema.map(_.toJson filterField {
+      case JField("additionalProperties", _) => true
+      case _ => false
+    })
+
+    jsonFiltered.map(_.head._2).getOrElse(false) must beEqualTo(JBool(true))
+  }
+
+  def additionalPropsNo = {
+    val context = Helpers.SchemaContext(0, Nil, None, true, true)
+    val generator = SchemaGenerator(context)
+
+    val json = parse(Source.fromURL(getClass.getResource("/duplicates/schema_with_many_nested_objects.json")).mkString)
+    val schema = generator.jsonToSchema(json)
+    val jsonFiltered = schema.map(_.toJson filterField {
+      case JField("additionalProperties", _) => true
+      case _ => false
+    })
+
+    jsonFiltered.map(_.head._2).getOrElse(true) must beEqualTo(JBool(false))
   }
 }

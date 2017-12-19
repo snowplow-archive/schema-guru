@@ -66,6 +66,10 @@ object Parser {
           c.copy(command = c.setNdjson(true)) }
           text "Expect newline-delimited JSON",
 
+        opt[Unit]("no-additional-properties")    action { (_, c) =>
+          c.copy(command = c.setNoAdditionalProperties(true)) }
+          text "Switch additionalProperties to false\n\tAdditional properties denied",
+
         opt[String]("vendor")
           action { (x, c) => c.copy(command = c.setVendor(x)) }
           valueName "<title>"

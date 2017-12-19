@@ -34,7 +34,7 @@ final case class ObjectSchema(properties: Map[String, JsonSchema])(implicit val 
 
   def toJson = ("type" -> "object") ~ ("properties" -> properties.map {
     case (key, value) => key -> value.toJson
-  }) ~ ("additionalProperties" -> false)
+  }) ~ ("additionalProperties" -> !schemaContext.noAdditionalProperties)
 
   def mergeSameType(implicit schemaContext: SchemaContext) = {
 
