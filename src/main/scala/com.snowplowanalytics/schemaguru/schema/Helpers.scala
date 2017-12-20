@@ -39,8 +39,9 @@ object Helpers extends Serializable {
    * @param enumSets list of all predefined enums
    * @param quantity quantity of valid JSON instances to process
    * @param deriveLength flag to disable minLength/maxLength derivation
+   * @param noAdditionalProperties flag to disable additional properties (if true - additionalProperties = 'false')
    */
-  case class SchemaContext(enumCardinality: Int, enumSets: List[JArray] = Nil, quantity: Option[Int] = None, deriveLength: Boolean = true) {
+  case class SchemaContext(enumCardinality: Int, enumSets: List[JArray] = Nil, quantity: Option[Int] = None, deriveLength: Boolean = true, noAdditionalProperties: Boolean = false) {
     private lazy val sets: List[(Set[JValue], Int)] = enumSets.map { e =>
       val set = e.arr.toSet
       val size = set.size

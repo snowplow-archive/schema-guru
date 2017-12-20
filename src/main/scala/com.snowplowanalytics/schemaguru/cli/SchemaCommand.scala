@@ -46,7 +46,8 @@ case class SchemaCommand private[schemaguru](
   schemaver: Option[SchemaVer] = None,
   schemaBy: Option[String] = None,
   noLength: Boolean = false,
-  ndjson: Boolean = false) extends SchemaGuruCommand {
+  ndjson: Boolean = false,
+  noAdditionalProperties: Boolean = false) extends SchemaGuruCommand {
 
   /**
    * Preference representing Schema-segmentation
@@ -142,7 +143,7 @@ case class SchemaCommand private[schemaguru](
    *         during process of derivation
    */
   private def produce(name: Option[String], jsons: List[JValue]): SchemaGuruResult = {
-    val context = SchemaContext(enumCardinality, successfulEnumSets, Some(jsons.length), !noLength)
+    val context = SchemaContext(enumCardinality, successfulEnumSets, Some(jsons.length), !noLength, noAdditionalProperties)
     val convertResult = SchemaGuru.convertsJsonsToSchema(jsons, context)
     SchemaGuru.mergeAndTransform(convertResult, context)
       .describe(vendor, name, schemaver)
