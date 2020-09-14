@@ -3,9 +3,11 @@
 .idea
 .DS_Store
 *.pyc
+.mypy_cache/
 
-# Scala worksheets
+# Scala
 src/test/scala/*.sc
+.metals/
 
 # Secret data
 src/test/resources/sandbox
